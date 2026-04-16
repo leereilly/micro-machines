@@ -17,13 +17,14 @@ const TRUCK_W = 26;
 const TRUCK_H = 38;
 
 const C = {
-    player: 0xe03030, ai1: 0x3070e0, ai2: 0xe0c020, ai3: 0x30c050,
+    player: 0x6366f1, ai1: 0x30c050, ai2: 0xe0c020, ai3: 0xe03030,
     road: 0x606060, roadEdge: 0x888888, dirt: 0x8B7355, grass: 0x4a8a3a,
     mud: 0x5a4830, hud: 0x111111, money: 0xFFD700, nitro: 0xff4400,
 };
 
-const NAMES = ['YOU', 'MADMAN', 'HURRICANE', "JAMMIN'"];
+const NAMES = ['COPILOT', 'FRANK', 'HUBOT', 'MONA'];
 const TCOLORS = [C.player, C.ai1, C.ai2, C.ai3];
+const PLAYER_IMGS = ['avatar_copilot', 'avatar_frank', 'avatar_hubot', 'avatar_mona'];
 const TKEYS = ['player', 'ai1', 'ai2', 'ai3'];
 const PRIZES = [100000, 90000, 80000, 70000];
 
@@ -39,10 +40,10 @@ const TRACK_MUSIC = [
 ];
 
 const TRUCK_SPRITES = {
-    player: 'kenney_car_red',
-    ai1: 'kenney_car_blue',
+    player: 'kenney_car_blue',
+    ai1: 'kenney_car_green',
     ai2: 'kenney_car_yellow',
-    ai3: 'kenney_car_green',
+    ai3: 'kenney_car_red',
 };
 
 const UPGRADES = [
@@ -292,10 +293,15 @@ class BootScene extends Phaser.Scene {
             console.warn('Asset load failed:', file.key, file.src || 'unknown source');
         });
 
-        this.load.image(TRUCK_SPRITES.player, 'kenney_racing-pack/PNG/Cars/car_red_1.png');
-        this.load.image(TRUCK_SPRITES.ai1, 'kenney_racing-pack/PNG/Cars/car_blue_1.png');
+        this.load.image(TRUCK_SPRITES.player, 'kenney_racing-pack/PNG/Cars/car_blue_1.png');
+        this.load.image(TRUCK_SPRITES.ai1, 'kenney_racing-pack/PNG/Cars/car_green_1.png');
         this.load.image(TRUCK_SPRITES.ai2, 'kenney_racing-pack/PNG/Cars/car_yellow_1.png');
-        this.load.image(TRUCK_SPRITES.ai3, 'kenney_racing-pack/PNG/Cars/car_green_1.png');
+        this.load.image(TRUCK_SPRITES.ai3, 'kenney_racing-pack/PNG/Cars/car_red_1.png');
+
+        this.load.image('avatar_copilot', 'players/copilot.png');
+        this.load.image('avatar_frank', 'players/frank.png');
+        this.load.image('avatar_hubot', 'players/hubot.png');
+        this.load.image('avatar_mona', 'players/mona.png');
 
         TRACK_MUSIC.forEach((path, i) => {
             this.load.audio('music_' + i, path);
@@ -808,7 +814,7 @@ class RaceScene extends Phaser.Scene {
                     .setDepth(10 + i)
                     .setDisplaySize(TRUCK_W, TRUCK_H),
                 x: sp.x, y: sp.y, a: sp.a, vx: 0, vy: 0,
-                isP, name: NAMES[i], col: TCOLORS[i], idx: i,
+                isP, name: NAMES[i], col: TCOLORS[i], imgKey: PLAYER_IMGS[i], idx: i,
                 maxSpd: isP ? 3.0 + gs.topSpeed * 0.25 : 3.0 + Math.min(gs.raceNum * 0.06, 2.0),
                 acc:    isP ? 0.06 + gs.acceleration * 0.008 : 0.06 + Math.min(gs.raceNum * 0.003, 0.04),
                 hand:   isP ? 0.038 + gs.tires * 0.003 : 0.038 + Math.min(gs.raceNum * 0.001, 0.015),
@@ -875,10 +881,16 @@ class RaceScene extends Phaser.Scene {
         this.hMon = this.add.text(300, 8, '$200,000', { ...s, color: '#FFD700' }).setDepth(51);
         this.hNit = this.add.text(480, 8, 'NITRO: 3', { ...s, color: '#ff6600' }).setDepth(51);
         this.hRce = this.add.text(640, 8, `RACE ${gs.raceNum + 1}`, { ...s, color: '#aaa' }).setDepth(51);
-        this.hTrk = this.add.text(790, 8, this.td.name, { ...s, color: '#aaa' }).setDepth(51);
         this.hBoard = [];
+        const pad = 10, imgSz = 30, rowH = 42, fontSize = '28px';
+        const bw = 300, bh = pad + 4 * rowH + pad, bx = GW - bw - pad, by = 46;
+        this.add.rectangle(bx + bw / 2, by + bh / 2, bw, bh, 0x111111, 0.85).setDepth(50).setOrigin(0.5);
         for (let i = 0; i < 4; i++) {
-            this.hBoard.push(this.add.text(16, 28, '', { fontSize: '11px', fontFamily: 'monospace', color: '#ccc' }).setDepth(51));
+            const ry = by + pad + i * rowH;
+            const img = this.add.image(bx + pad + imgSz / 2, ry + rowH / 2, PLAYER_IMGS[i]).setDepth(51).setDisplaySize(imgSz, imgSz);
+            const nameTxt = this.add.text(bx + pad + imgSz + 8, ry + rowH / 2, '', { fontSize, fontFamily: 'monospace', color: '#ccc' }).setDepth(51).setOrigin(0, 0.5);
+            const posTxt = this.add.text(bx + bw - pad, ry + rowH / 2, '', { fontSize, fontFamily: 'monospace', color: '#ccc' }).setDepth(51).setOrigin(1, 0.5);
+            this.hBoard.push({ img, nameTxt, posTxt });
         }
     }
 
@@ -1129,12 +1141,12 @@ class RaceScene extends Phaser.Scene {
         this.hMon.setText('$' + gs.money.toLocaleString());
         this.hNit.setText('NITRO: ' + t0.nitros + (t0.nAct ? ' 🔥' : ''));
         if (this.posOrder) {
-            this.hBoard.forEach((txt, i) => {
+            this.hBoard.forEach((entry, i) => {
                 const ti = this.posOrder[i];
                 const tk = this.trucks[ti];
-                txt.setText(pl[i] + ' ' + tk.name);
-                txt.setColor(hexCSS(tk.col));
-                txt.setPosition(GW - 150, 6 + i * 11);
+                entry.img.setTexture(tk.imgKey);
+                entry.nameTxt.setText(tk.name).setColor(hexCSS(tk.col));
+                entry.posTxt.setText(pl[i]).setColor(hexCSS(tk.col));
             });
         }
     }
@@ -1151,7 +1163,7 @@ class RaceScene extends Phaser.Scene {
         gs.raceNum++;
         gs.lastRes = {
             track: this.td.name, race: gs.raceNum,
-            order: this.finOrder.map(t => ({ name: t.name, isP: t.isP, pos: t.finPos })),
+            order: this.finOrder.map(t => ({ name: t.name, imgKey: t.imgKey, isP: t.isP, pos: t.finPos })),
             pp, prize,
         };
         this.sound.stopAll();
@@ -1179,10 +1191,12 @@ class ResultsScene extends Phaser.Scene {
         const pl = ['1st', '2nd', '3rd', '4th'];
         r.order.forEach((e, i) => {
             const y = 200 + i * 65;
-            this.add.text(GW / 2, y, `${pl[i]}  ${e.name}${e.isP ? '  ◄ YOU' : ''}`, {
+            const imgX = GW / 2 - 120;
+            this.add.image(imgX, y, e.imgKey).setOrigin(0.5).setDisplaySize(40, 40).setDepth(1);
+            this.add.text(GW / 2 - 80, y, `${pl[i]}  ${e.name}${e.isP ? '  ◄ YOU' : ''}`, {
                 fontSize: '26px', fontFamily: 'monospace',
-                color: e.isP ? '#e03030' : '#ccc', fontStyle: 'bold',
-            }).setOrigin(0.5);
+                color: e.isP ? '#6366f1' : '#ccc', fontStyle: 'bold',
+            }).setOrigin(0, 0.5);
         });
 
         this.add.text(GW / 2, 490, `PRIZE:  $${r.prize.toLocaleString()}`, {
