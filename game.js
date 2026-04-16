@@ -17,7 +17,7 @@ const TRUCK_W = 26;
 const TRUCK_H = 38;
 
 const C = {
-    player: 0x6366f1, ai1: 0x30c050, ai2: 0xe0c020, ai3: 0xe03030,
+    player: 0x7b5ea7, ai1: 0xf0c020, ai2: 0xe08a1e, ai3: 0xe88acc,
     road: 0x606060, roadEdge: 0x888888, dirt: 0x8B7355, grass: 0x4a8a3a,
     mud: 0x5a4830, hud: 0x111111, money: 0xFFD700, nitro: 0xff4400,
 };
@@ -40,10 +40,10 @@ const TRACK_MUSIC = [
 ];
 
 const TRUCK_SPRITES = {
-    player: 'kenney_car_blue',
-    ai1: 'kenney_car_green',
-    ai2: 'kenney_car_yellow',
-    ai3: 'kenney_car_red',
+    player: 'car_copilot',
+    ai1: 'car_frank',
+    ai2: 'car_hubot',
+    ai3: 'car_mona',
 };
 
 const UPGRADES = [
@@ -293,10 +293,10 @@ class BootScene extends Phaser.Scene {
             console.warn('Asset load failed:', file.key, file.src || 'unknown source');
         });
 
-        this.load.image(TRUCK_SPRITES.player, 'kenney_racing-pack/PNG/Cars/car_blue_1.png');
-        this.load.image(TRUCK_SPRITES.ai1, 'kenney_racing-pack/PNG/Cars/car_green_1.png');
-        this.load.image(TRUCK_SPRITES.ai2, 'kenney_racing-pack/PNG/Cars/car_yellow_1.png');
-        this.load.image(TRUCK_SPRITES.ai3, 'kenney_racing-pack/PNG/Cars/car_red_1.png');
+        this.load.image(TRUCK_SPRITES.player, 'players/car_copilot.png');
+        this.load.image(TRUCK_SPRITES.ai1, 'players/car_frank.png');
+        this.load.image(TRUCK_SPRITES.ai2, 'players/car_hubot.png');
+        this.load.image(TRUCK_SPRITES.ai3, 'players/car_mona.png');
 
         this.load.image('avatar_copilot', 'players/copilot.png');
         this.load.image('avatar_frank', 'players/frank.png');
@@ -1038,7 +1038,7 @@ class RaceScene extends Phaser.Scene {
 
     syncSprite(t) {
         t.spr.x = t.x; t.spr.y = t.y;
-        if (t.spr.texture && t.spr.texture.key.startsWith('kenney_car_')) {
+        if (t.spr.texture && (t.spr.texture.key.startsWith('kenney_car_') || t.spr.texture.key.startsWith('car_'))) {
             // Kenney cars face up by default; gameplay heading angle 0 points right.
             t.spr.setRotation(t.a + Math.PI / 2);
             return;
@@ -1195,7 +1195,7 @@ class ResultsScene extends Phaser.Scene {
             this.add.image(imgX, y, e.imgKey).setOrigin(0.5).setDisplaySize(40, 40).setDepth(1);
             this.add.text(GW / 2 - 80, y, `${pl[i]}  ${e.name}${e.isP ? '  ◄ YOU' : ''}`, {
                 fontSize: '26px', fontFamily: 'monospace',
-                color: e.isP ? '#6366f1' : '#ccc', fontStyle: 'bold',
+                color: e.isP ? '#7b5ea7' : '#ccc', fontStyle: 'bold',
             }).setOrigin(0, 0.5);
         });
 
