@@ -476,22 +476,138 @@ class BootScene extends Phaser.Scene {
                 });
                 // soccer balls scattered off-road
                 const drawBall = (bx, by, r) => {
+                    // white base
+                    vx.save();
+                    vx.beginPath(); vx.arc(bx, by, r, 0, Math.PI*2); vx.closePath(); vx.clip();
                     vx.fillStyle = '#fff';
-                    vx.beginPath(); vx.arc(bx, by, r, 0, Math.PI*2); vx.fill();
-                    vx.strokeStyle = '#111'; vx.lineWidth = 0.8;
-                    vx.stroke();
-                    // pentagon patch approximation
-                    vx.fillStyle = '#111';
-                    const pts = 5;
-                    for (let p = 0; p < pts; p++) {
-                        const a = (p / pts) * Math.PI * 2 - Math.PI / 2;
+                    vx.fillRect(bx - r, by - r, r*2, r*2);
+                    // centre pentagon
+                    const drawPentagon = (cx2, cy2, pr) => {
                         vx.beginPath();
-                        vx.arc(bx + Math.cos(a)*r*0.45, by + Math.sin(a)*r*0.45, r*0.22, 0, Math.PI*2);
-                        vx.fill();
+                        for (let p = 0; p < 5; p++) {
+                            const a = (p / 5) * Math.PI * 2 - Math.PI / 2;
+                            const px2 = cx2 + Math.cos(a) * pr;
+                            const py2 = cy2 + Math.sin(a) * pr;
+                            p === 0 ? vx.moveTo(px2, py2) : vx.lineTo(px2, py2);
+                        }
+                        vx.closePath();
+                    };
+                    vx.fillStyle = '#222';
+                    drawPentagon(bx, by, r * 0.35); vx.fill();
+                    // outer pentagons
+                    for (let p = 0; p < 5; p++) {
+                        const a = (p / 5) * Math.PI * 2 - Math.PI / 2;
+                        const ox = bx + Math.cos(a) * r * 0.72;
+                        const oy = by + Math.sin(a) * r * 0.72;
+                        vx.fillStyle = '#222';
+                        drawPentagon(ox, oy, r * 0.25); vx.fill();
                     }
-                    vx.beginPath(); vx.arc(bx, by, r*0.22, 0, Math.PI*2); vx.fill();
+                    // seam lines from centre pentagon vertices to outer pentagons
+                    vx.strokeStyle = '#555'; vx.lineWidth = r * 0.06;
+                    for (let p = 0; p < 5; p++) {
+                        const a1 = (p / 5) * Math.PI * 2 - Math.PI / 2;
+                        const ix = bx + Math.cos(a1) * r * 0.35;
+                        const iy = by + Math.sin(a1) * r * 0.35;
+                        const ox = bx + Math.cos(a1) * r * 0.72;
+                        const oy = by + Math.sin(a1) * r * 0.72;
+                        vx.beginPath(); vx.moveTo(ix, iy); vx.lineTo(ox, oy); vx.stroke();
+                        // connect adjacent outer pentagons
+                        const a2 = ((p+1) / 5) * Math.PI * 2 - Math.PI / 2;
+                        const ox2 = bx + Math.cos(a2) * r * 0.72;
+                        const oy2 = by + Math.sin(a2) * r * 0.72;
+                        const mx = (ox + ox2) / 2 + (by - (oy + oy2)/2) * 0.15;
+                        const my = (oy + oy2) / 2 + ((ox + ox2)/2 - bx) * 0.15;
+                        vx.beginPath(); vx.moveTo(ox, oy); vx.quadraticCurveTo(mx, my, ox2, oy2); vx.stroke();
+                    }
+                    vx.restore();
+                    // outer edge
+                    vx.strokeStyle = '#333'; vx.lineWidth = r * 0.1;
+                    vx.beginPath(); vx.arc(bx, by, r, 0, Math.PI*2); vx.stroke();
+                    // subtle highlight
+                    const hl = vx.createRadialGradient(bx - r*0.3, by - r*0.3, 0, bx, by, r);
+                    hl.addColorStop(0, 'rgba(255,255,255,0.5)'); hl.addColorStop(1, 'rgba(0,0,0,0)');
+                    vx.fillStyle = hl;
+                    vx.beginPath(); vx.arc(bx, by, r, 0, Math.PI*2); vx.fill();
                 };
                 for (let i = 0; i < 10; i++) drawBall(srand()*GW, srand()*GH, 5 + srand()*5);
+
+                // subbuteo player
+                const spx = 100 + srand() * (GW - 200), spy = 100 + srand() * (GH - 200);
+                // dome base
+                vx.fillStyle = '#1a1a1a';
+                vx.beginPath(); vx.ellipse(spx, spy + 12, 12, 5, 0, 0, Math.PI * 2); vx.fill();
+                vx.fillStyle = '#222';
+                vx.beginPath(); vx.ellipse(spx, spy + 10, 11, 4, 0, 0, Math.PI * 2); vx.fill();
+                // rod / peg
+                vx.fillStyle = '#333';
+                vx.fillRect(spx - 1.5, spy - 2, 3, 14);
+                // body (blue shirt)
+                vx.fillStyle = '#1a4fc4';
+                vx.fillRect(spx - 5, spy - 10, 10, 10);
+                // white shorts
+                vx.fillStyle = '#fff';
+                vx.fillRect(spx - 4, spy, 8, 4);
+                // legs
+                vx.fillStyle = '#e8c090';
+                vx.fillRect(spx - 3, spy + 4, 2.5, 5);
+                vx.fillRect(spx + 0.5, spy + 4, 2.5, 5);
+                // boots
+                vx.fillStyle = '#111';
+                vx.fillRect(spx - 3, spy + 9, 3, 2);
+                vx.fillRect(spx + 0.5, spy + 9, 3, 2);
+                // head
+                vx.fillStyle = '#e8c090';
+                vx.beginPath(); vx.arc(spx, spy - 13, 4, 0, Math.PI * 2); vx.fill();
+                // hair
+                vx.fillStyle = '#3a2a1a';
+                vx.beginPath(); vx.arc(spx, spy - 14.5, 3.5, Math.PI, Math.PI * 2); vx.fill();
+                // arms
+                vx.strokeStyle = '#1a4fc4'; vx.lineWidth = 2;
+                vx.beginPath(); vx.moveTo(spx - 5, spy - 8); vx.lineTo(spx - 8, spy - 3); vx.stroke();
+                vx.beginPath(); vx.moveTo(spx + 5, spy - 8); vx.lineTo(spx + 8, spy - 3); vx.stroke();
+
+                // Rangers vs Celtic match ticket — centered and visible
+                srand(); srand(); // consume random values to keep seed in sync
+                const tkx = GW / 2 - 60, tky = GH / 2 - 26;
+                vx.save();
+                vx.translate(tkx, tky);
+                vx.rotate(-0.08 + srand() * 0.16);
+                // ticket background
+                const tg = vx.createLinearGradient(0, 0, 120, 0);
+                tg.addColorStop(0, '#f5f0e0'); tg.addColorStop(1, '#ece5cc');
+                vx.fillStyle = tg;
+                vx.fillRect(0, 0, 120, 52);
+                // ticket border
+                vx.strokeStyle = '#8a7a5a'; vx.lineWidth = 1.2;
+                vx.strokeRect(0, 0, 120, 52);
+                // perforated edge
+                vx.setLineDash([2, 3]); vx.strokeStyle = '#aaa'; vx.lineWidth = 0.8;
+                vx.beginPath(); vx.moveTo(90, 0); vx.lineTo(90, 52); vx.stroke();
+                vx.setLineDash([]);
+                // header bar
+                vx.fillStyle = '#1a3c7a'; vx.fillRect(2, 2, 86, 12);
+                vx.fillStyle = '#fff'; vx.font = 'bold 7px sans-serif'; vx.textAlign = 'center';
+                vx.fillText('OLD FIRM DERBY', 45, 11);
+                // team names
+                vx.fillStyle = '#0033a0'; vx.font = 'bold 8px sans-serif'; vx.textAlign = 'left';
+                vx.fillText('RANGERS', 6, 26);
+                vx.fillStyle = '#333'; vx.font = 'bold 7px sans-serif';
+                vx.fillText('vs', 54, 26);
+                vx.fillStyle = '#006b35'; vx.font = 'bold 8px sans-serif';
+                vx.fillText('CELTIC', 64, 26);
+                // match details
+                vx.fillStyle = '#555'; vx.font = '5.5px sans-serif'; vx.textAlign = 'left';
+                vx.fillText('IBROX STADIUM', 6, 35);
+                vx.fillText('SAT 15:00  ADMIT ONE', 6, 43);
+                // stub section
+                vx.fillStyle = '#666'; vx.font = '5px sans-serif'; vx.textAlign = 'center';
+                vx.fillText('SECT', 105, 18);
+                vx.fillStyle = '#1a3c7a'; vx.font = 'bold 10px sans-serif';
+                vx.fillText('A7', 105, 30);
+                vx.fillStyle = '#888'; vx.font = '4.5px sans-serif';
+                vx.fillText('ROW 12', 105, 38);
+                vx.fillText('SEAT 4', 105, 45);
+                vx.restore();
                 // road shoulder — white line
                 vx.strokeStyle = '#bbb'; vx.lineWidth = t.rw + 10; vx.setLineDash([]);
                 vx.lineCap = 'round'; vx.lineJoin = 'round';
