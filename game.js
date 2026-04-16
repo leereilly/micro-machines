@@ -23,8 +23,10 @@ const C = {
 };
 
 const NAMES = ['COPILOT', 'FRANK', 'HUBOT', 'MONA'];
+const CHAR_COLORS = [0x7b5ea7, 0xf0c020, 0xe08a1e, 0xe88acc];
 const TCOLORS = [C.player, C.ai1, C.ai2, C.ai3];
 const PLAYER_IMGS = ['avatar_copilot', 'avatar_frank', 'avatar_hubot', 'avatar_mona'];
+const CAR_SPRITES = ['car_copilot', 'car_frank', 'car_hubot', 'car_mona'];
 const TKEYS = ['player', 'ai1', 'ai2', 'ai3'];
 const PRIZES = [100000, 90000, 80000, 70000];
 
@@ -149,8 +151,15 @@ let gs = resetGameState();
 function resetGameState() {
     return {
         money: 200000, tires: 0, shocks: 0, acceleration: 0,
-        topSpeed: 0, nitros: 3, raceNum: 0,
+        topSpeed: 0, nitros: 3, raceNum: 0, playerIdx: 0,
     };
+}
+
+// Returns character indices reordered so gs.playerIdx is first
+function getCharOrder() {
+    const order = [gs.playerIdx];
+    for (let i = 0; i < 4; i++) if (i !== gs.playerIdx) order.push(i);
+    return order;
 }
 
 // ── UTILITY: Catmull-Rom closed-loop spline ─────────────────
@@ -766,8 +775,7 @@ class TitleScene extends Phaser.Scene {
                     gs = resetGameState();
                     gs.raceNum = trackNum - 1;
                     flushDigits();
-                    this.scene.start('RaceScene');
-                } else {
+                    this.scene.start('PlayerSelectScene');                } else {
                     digitTimer = setTimeout(flushDigits, 1200);
                 }
             }
@@ -775,10 +783,106 @@ class TitleScene extends Phaser.Scene {
 
         const startGame = () => {
             gs = resetGameState();
-            this.scene.start('RaceScene');
+            this.scene.start('PlayerSelectScene');
         };
         this.input.keyboard.on('keydown-ENTER', startGame);
         this.input.keyboard.on('keydown-SPACE', startGame);
+    }
+}
+
+// ── PLAYER SELECT SCENE ─────────────────────────────────────
+class PlayerSelectScene extends Phaser.Scene {
+    constructor() { super('PlayerSelectScene'); }
+
+    create() {
+        this.cameras.main.setBackgroundColor('#0a0a1a');
+        this.sel = gs.playerIdx || 0;
+
+        this.add.text(GW / 2, 80, 'CHOOSE YOUR DRIVER', {
+            fontSize: '40px', fontFamily: 'monospace', color: '#FFD700',
+            fontStyle: 'bold', stroke: '#6B3410', strokeThickness: 6,
+        }).setOrigin(0.5);
+
+        this.add.text(GW / 2, 135, '← →  to select  ·  ENTER to confirm', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#888',
+        }).setOrigin(0.5);
+
+        // layout: 4 characters evenly spaced
+        const startX = GW / 2 - 1.5 * 180;
+        const yAvatar = 350;
+        const yName = 500;
+        const spacing = 180;
+        const avatarSize = 120;
+
+        this.cards = [];
+        for (let i = 0; i < 4; i++) {
+            const cx = startX + i * spacing;
+
+            // background card
+            const bg = this.add.rectangle(cx, 400, 150, 240, 0x222244, 0.6)
+                .setStrokeStyle(3, 0x444466);
+
+            // avatar
+            const img = this.add.image(cx, yAvatar, PLAYER_IMGS[i])
+                .setDisplaySize(avatarSize, avatarSize);
+
+            // name
+            const name = this.add.text(cx, yName, NAMES[i], {
+                fontSize: '22px', fontFamily: 'monospace', color: '#ccc',
+                fontStyle: 'bold',
+            }).setOrigin(0.5);
+
+            this.cards.push({ bg, img, name, x: cx });
+        }
+
+        // highlight indicator
+        this.highlight = this.add.rectangle(0, 400, 160, 250, 0x000000, 0)
+            .setStrokeStyle(4, 0xFFD700).setDepth(5);
+
+        // arrow indicators
+        this.arrowL = this.add.text(startX - 100, 400, '◀', {
+            fontSize: '48px', fontFamily: 'monospace', color: '#FFD700',
+        }).setOrigin(0.5);
+        this.arrowR = this.add.text(startX + 3 * spacing + 100, 400, '▶', {
+            fontSize: '48px', fontFamily: 'monospace', color: '#FFD700',
+        }).setOrigin(0.5);
+
+        this.updateSelection();
+
+        // controls
+        this.input.keyboard.on('keydown-LEFT', () => {
+            this.sel = (this.sel - 1 + 4) % 4;
+            this.updateSelection();
+        });
+        this.input.keyboard.on('keydown-RIGHT', () => {
+            this.sel = (this.sel + 1) % 4;
+            this.updateSelection();
+        });
+        this.input.keyboard.on('keydown-ENTER', () => this.confirm());
+        this.input.keyboard.on('keydown-SPACE', () => this.confirm());
+    }
+
+    updateSelection() {
+        const card = this.cards[this.sel];
+        this.highlight.setPosition(card.x, 400);
+        this.cards.forEach((c, i) => {
+            const active = i === this.sel;
+            c.bg.setFillStyle(active ? 0x334488 : 0x222244, active ? 0.9 : 0.6);
+            c.bg.setStrokeStyle(3, active ? 0xFFD700 : 0x444466);
+            c.img.setAlpha(active ? 1.0 : 0.5);
+            c.img.setDisplaySize(active ? 130 : 120, active ? 130 : 120);
+            c.name.setColor(active ? '#FFD700' : '#888');
+        });
+        // pulse arrows based on edges
+        this.arrowL.setAlpha(1);
+        this.arrowR.setAlpha(1);
+    }
+
+    confirm() {
+        gs.playerIdx = this.sel;
+        // brief flash effect
+        this.cameras.main.flash(300, 255, 215, 0);
+        this.time.delayedCall(300, () => this.scene.start('RaceScene'));
     }
 }
 
@@ -803,18 +907,19 @@ class RaceScene extends Phaser.Scene {
 
         // create trucks
         this.trucks = [];
+        const charOrder = getCharOrder();
         for (let i = 0; i < 4; i++) {
             const sp = this.td.starts[i];
             const isP = i === 0;
-            const tKey = TKEYS[i];
-            const spriteKey = this.textures.exists(TRUCK_SPRITES[tKey]) ? TRUCK_SPRITES[tKey] : `truck_${tKey}`;
+            const ci = charOrder[i]; // character index
+            const spriteKey = this.textures.exists(CAR_SPRITES[ci]) ? CAR_SPRITES[ci] : `truck_${TKEYS[i]}`;
             const t = {
                 spr: this.add.sprite(sp.x, sp.y, spriteKey)
                     .setOrigin(0.5)
                     .setDepth(10 + i)
                     .setDisplaySize(TRUCK_W, TRUCK_H),
                 x: sp.x, y: sp.y, a: sp.a, vx: 0, vy: 0,
-                isP, name: NAMES[i], col: TCOLORS[i], imgKey: PLAYER_IMGS[i], idx: i,
+                isP, name: NAMES[ci], col: CHAR_COLORS[ci], imgKey: PLAYER_IMGS[ci], idx: i,
                 maxSpd: isP ? 3.0 + gs.topSpeed * 0.25 : 3.0 + Math.min(gs.raceNum * 0.06, 2.0),
                 acc:    isP ? 0.06 + gs.acceleration * 0.008 : 0.06 + Math.min(gs.raceNum * 0.003, 0.04),
                 hand:   isP ? 0.038 + gs.tires * 0.003 : 0.038 + Math.min(gs.raceNum * 0.001, 0.015),
@@ -887,7 +992,7 @@ class RaceScene extends Phaser.Scene {
         this.add.rectangle(bx + bw / 2, by + bh / 2, bw, bh, 0x111111, 0.85).setDepth(50).setOrigin(0.5);
         for (let i = 0; i < 4; i++) {
             const ry = by + pad + i * rowH;
-            const img = this.add.image(bx + pad + imgSz / 2, ry + rowH / 2, PLAYER_IMGS[i]).setDepth(51).setDisplaySize(imgSz, imgSz);
+            const img = this.add.image(bx + pad + imgSz / 2, ry + rowH / 2, this.trucks[i].imgKey).setDepth(51).setDisplaySize(imgSz, imgSz);
             const nameTxt = this.add.text(bx + pad + imgSz + 8, ry + rowH / 2, '', { fontSize, fontFamily: 'monospace', color: '#ccc' }).setDepth(51).setOrigin(0, 0.5);
             const posTxt = this.add.text(bx + bw - pad, ry + rowH / 2, '', { fontSize, fontFamily: 'monospace', color: '#ccc' }).setDepth(51).setOrigin(1, 0.5);
             this.hBoard.push({ img, nameTxt, posTxt });
@@ -1195,7 +1300,7 @@ class ResultsScene extends Phaser.Scene {
             this.add.image(imgX, y, e.imgKey).setOrigin(0.5).setDisplaySize(40, 40).setDepth(1);
             this.add.text(GW / 2 - 80, y, `${pl[i]}  ${e.name}${e.isP ? '  ◄ YOU' : ''}`, {
                 fontSize: '26px', fontFamily: 'monospace',
-                color: e.isP ? '#7b5ea7' : '#ccc', fontStyle: 'bold',
+                color: e.isP ? hexCSS(CHAR_COLORS[gs.playerIdx]) : '#ccc', fontStyle: 'bold',
             }).setOrigin(0, 0.5);
         });
 
@@ -1321,7 +1426,7 @@ const config = {
         // Works better for local file:// runs (e.g. opening index.html directly).
         imageLoadType: 'HTMLImageElement',
     },
-    scene: [BootScene, TitleScene, RaceScene, ResultsScene, ShopScene],
+    scene: [BootScene, TitleScene, PlayerSelectScene, RaceScene, ResultsScene, ShopScene],
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
