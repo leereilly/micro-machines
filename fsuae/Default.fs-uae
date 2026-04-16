@@ -1,0 +1,24 @@
+amiga_model = A1200/020
+chip_memory = 2048
+fast_memory = 8192
+fullscreen = 1
+base_dir =.\
+unsafe_save_states = 1
+relative_temp_feature = 1
+kickstart_file = .\dummyfile
+uae_chipset = aga
+hard_drive_0 =.\Hard Drives
+hard_drive_0_priority = 6
+scanlines = 0
+
+keyboard_key_up = action_joy_1_up
+keyboard_key_right = action_joy_1_right
+keyboard_key_left = action_joy_1_left
+keyboard_key_down = action_joy_1_down
+keyboard_key_rctrl = action_joy_1_fire_button
+
+keyboard_key_w = action_joy_0_up
+keyboard_key_d = action_joy_0_right
+keyboard_key_a = action_joy_0_left
+keyboard_key_s = action_joy_0_down
+keyboard_key_lctrl = action_joy_0_fire_button
