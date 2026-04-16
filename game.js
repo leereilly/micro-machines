@@ -181,6 +181,108 @@ function hexCSS(c) { return '#' + c.toString(16).padStart(6, '0'); }
 
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
+// ── PROCEDURAL SFX (Web Audio API) ─────────────────────────
+const SFX = (() => {
+    let ctx = null;
+    const ac = () => { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; };
+
+    // play a simple tone burst
+    function tone(freq, type, vol, attack, sustain, release, delay = 0) {
+        const c = ac();
+        const g = c.createGain();
+        g.connect(c.destination);
+        const o = c.createOscillator();
+        o.type = type; o.frequency.value = freq;
+        o.connect(g);
+        const t0 = c.currentTime + delay;
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(vol, t0 + attack);
+        g.gain.setValueAtTime(vol, t0 + attack + sustain);
+        g.gain.linearRampToValueAtTime(0, t0 + attack + sustain + release);
+        o.start(t0);
+        o.stop(t0 + attack + sustain + release + 0.01);
+    }
+
+    // countdown beep (low for 3/2/1, high+chord for GO)
+    function countdownBeep(isGo) {
+        if (isGo) {
+            // major chord fanfare
+            [[523, 0], [659, 0.04], [784, 0.08]].forEach(([f, d]) =>
+                tone(f, 'square', 0.18, 0.01, 0.18, 0.15, d)
+            );
+        } else {
+            tone(330, 'square', 0.22, 0.005, 0.08, 0.06);
+        }
+    }
+
+    // short nitro burst: noise-ish sweep up
+    function nitro() {
+        const c = ac();
+        const g = c.createGain();
+        g.connect(c.destination);
+        const o = c.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(80, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(400, c.currentTime + 0.25);
+        o.connect(g);
+        g.gain.setValueAtTime(0.3, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.35);
+        o.start(); o.stop(c.currentTime + 0.36);
+        // layered hiss
+        const buf = c.createBuffer(1, c.sampleRate * 0.3, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const src = c.createBufferSource();
+        src.buffer = buf;
+        const hg = c.createGain(); hg.gain.setValueAtTime(0.12, c.currentTime);
+        hg.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.3);
+        src.connect(hg); hg.connect(c.destination);
+        src.start();
+    }
+
+    // pickup jingles
+    function pickupMoney() {
+        // ascending coin chime: C5 → E5 → G5
+        [[523, 0], [659, 0.07], [784, 0.14]].forEach(([f, d]) =>
+            tone(f, 'sine', 0.22, 0.005, 0.06, 0.08, d)
+        );
+    }
+    function pickupNitro() {
+        // power-up rising blip: A4 → A5
+        tone(440, 'square', 0.15, 0.005, 0.04, 0.05, 0);
+        tone(880, 'square', 0.18, 0.005, 0.08, 0.10, 0.08);
+    }
+
+    // engine: continuous oscillator managed externally
+    let engineOsc = null, engineGain = null;
+    function engineStart() {
+        if (engineOsc) return;
+        const c = ac();
+        engineGain = c.createGain(); engineGain.gain.value = 0.06;
+        engineGain.connect(c.destination);
+        engineOsc = c.createOscillator();
+        engineOsc.type = 'sawtooth'; engineOsc.frequency.value = 38;
+        engineOsc.connect(engineGain);
+        engineOsc.start();
+    }
+    function engineUpdate(speed, maxSpeed, accelerating) {
+        if (!engineOsc) return;
+        const c = ac();
+        const ratio = Math.min(1, speed / (maxSpeed * 0.9 + 0.01));
+        const targetFreq = 38 + ratio * 95 + (accelerating ? 18 : 0);
+        const targetVol  = 0.08 + ratio * 0.09 + (accelerating ? 0.04 : 0);
+        engineOsc.frequency.setTargetAtTime(targetFreq, c.currentTime, 0.08);
+        engineGain.gain.setTargetAtTime(targetVol,  c.currentTime, 0.08);
+    }
+    function engineStop() {
+        if (!engineOsc) return;
+        engineGain.gain.setTargetAtTime(0, ac().currentTime, 0.1);
+        setTimeout(() => { try { engineOsc.stop(); } catch(e){} engineOsc = null; engineGain = null; }, 300);
+    }
+
+    return { countdownBeep, nitro, pickupMoney, pickupNitro, engineStart, engineUpdate, engineStop };
+})();
+
 // ── BOOT SCENE ──────────────────────────────────────────────
 class BootScene extends Phaser.Scene {
     constructor() { super('BootScene'); }
@@ -270,55 +372,252 @@ class BootScene extends Phaser.Scene {
             const wp = spline(t.cp, 20);
             t.wp = wp;
 
+            const halloween = idx === 7;
+            const soccer    = idx === 5;
+            const asian     = idx === 2;
+
             // ── visual ──
             const vc = document.createElement('canvas'); vc.width = GW; vc.height = GH;
             const vx = vc.getContext('2d');
 
-            // grass background with subtle patches
-            vx.fillStyle = '#4a8a3a'; vx.fillRect(0, 0, GW, GH);
-            for (let i = 0; i < 30; i++) {
-                const shade = 60 + (srand() * 30 | 0);
-                vx.fillStyle = `rgb(${shade},${shade + 50},${shade - 10})`;
-                vx.beginPath(); vx.arc(srand() * GW, srand() * GH, 20 + srand() * 60, 0, Math.PI * 2); vx.fill();
+            if (halloween) {
+                // deep dark purple-black night sky
+                vx.fillStyle = '#0d0010'; vx.fillRect(0, 0, GW, GH);
+                // moody purple/dark patches
+                for (let i = 0; i < 35; i++) {
+                    const r2 = vx.createRadialGradient(srand()*GW, srand()*GH, 0, srand()*GW, srand()*GH, 30 + srand()*80);
+                    r2.addColorStop(0, `rgba(${60+(srand()*40|0)},0,${80+(srand()*60|0)},0.55)`);
+                    r2.addColorStop(1, 'rgba(0,0,0,0)');
+                    vx.fillStyle = r2; vx.fillRect(0, 0, GW, GH);
+                }
+                // scattered stars
+                for (let i = 0; i < 80; i++) {
+                    vx.fillStyle = `rgba(255,220,255,${0.3 + srand()*0.7})`;
+                    vx.fillRect(srand()*GW|0, srand()*GH|0, 1, 1);
+                }
+                // jack-o-lantern pumpkins scattered on field
+                const drawPumpkin = (px, py, r) => {
+                    vx.fillStyle = '#c85000';
+                    vx.beginPath(); vx.ellipse(px, py, r, r*0.8, 0, 0, Math.PI*2); vx.fill();
+                    vx.fillStyle = '#e06000';
+                    vx.beginPath(); vx.ellipse(px-r*0.28, py, r*0.5, r*0.72, 0, 0, Math.PI*2); vx.fill();
+                    vx.beginPath(); vx.ellipse(px+r*0.28, py, r*0.5, r*0.72, 0, 0, Math.PI*2); vx.fill();
+                    // stem
+                    vx.fillStyle = '#2a5500'; vx.fillRect(px-2, py-r*0.8-6, 4, 7);
+                    // eyes
+                    vx.fillStyle = '#ffcc00';
+                    vx.beginPath(); vx.moveTo(px-r*0.35, py-r*0.1); vx.lineTo(px-r*0.15, py-r*0.3); vx.lineTo(px-r*0.15, py-r*0.1); vx.fill();
+                    vx.beginPath(); vx.moveTo(px+r*0.35, py-r*0.1); vx.lineTo(px+r*0.15, py-r*0.3); vx.lineTo(px+r*0.15, py-r*0.1); vx.fill();
+                    // mouth
+                    vx.beginPath(); vx.moveTo(px-r*0.35, py+r*0.2);
+                    vx.lineTo(px-r*0.2, py+r*0.35); vx.lineTo(px-r*0.05, py+r*0.22);
+                    vx.lineTo(px+r*0.05, py+r*0.35); vx.lineTo(px+r*0.2, py+r*0.22);
+                    vx.lineTo(px+r*0.35, py+r*0.35); vx.lineTo(px+r*0.35, py+r*0.2); vx.fill();
+                };
+                for (let i = 0; i < 12; i++) drawPumpkin(srand()*GW, srand()*GH, 8 + srand()*10);
+                // road shoulder — purple-tinged
+                vx.strokeStyle = '#4a1a6a'; vx.lineWidth = t.rw + 10;
+                vx.lineCap = 'round'; vx.lineJoin = 'round';
+                drawPath(vx, wp); vx.stroke();
+                // road surface — very dark
+                vx.strokeStyle = '#1a0828'; vx.lineWidth = t.rw;
+                drawPath(vx, wp); vx.stroke();
+                // inner detail
+                vx.strokeStyle = '#220a32'; vx.lineWidth = t.rw - 12;
+                drawPath(vx, wp); vx.stroke();
+                // centre dashes — orange
+                vx.strokeStyle = '#cc5500'; vx.lineWidth = 1; vx.setLineDash([8, 14]);
+                drawPath(vx, wp); vx.stroke(); vx.setLineDash([]);
+                // mud as glowing purple slime pools
+                t.mud.forEach(m => {
+                    const g = vx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r);
+                    g.addColorStop(0, 'rgba(160,0,200,0.9)'); g.addColorStop(1, 'rgba(80,0,100,0.15)');
+                    vx.fillStyle = g; vx.beginPath(); vx.arc(m.x, m.y, m.r, 0, Math.PI * 2); vx.fill();
+                });
+            } else if (soccer) {
+                // ── SOCCER: vivid green pitch with field markings ──
+                vx.fillStyle = '#2e8b2e'; vx.fillRect(0, 0, GW, GH);
+                // alternating mow stripes
+                for (let s = 0; s < GH; s += 40) {
+                    vx.fillStyle = s % 80 === 0 ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.04)';
+                    vx.fillRect(0, s, GW, 40);
+                }
+                // field boundary
+                vx.strokeStyle = 'rgba(255,255,255,0.55)'; vx.lineWidth = 3; vx.setLineDash([]);
+                vx.strokeRect(60, 60, GW - 120, GH - 120);
+                // centre circle
+                vx.beginPath(); vx.arc(GW/2, GH/2, 70, 0, Math.PI*2); vx.stroke();
+                vx.beginPath(); vx.arc(GW/2, GH/2, 3, 0, Math.PI*2);
+                vx.fillStyle = 'rgba(255,255,255,0.8)'; vx.fill();
+                // halfway line
+                vx.beginPath(); vx.moveTo(60, GH/2); vx.lineTo(GW-60, GH/2); vx.stroke();
+                // penalty boxes
+                vx.strokeRect(60, GH/2 - 80, 100, 160);
+                vx.strokeRect(GW - 160, GH/2 - 80, 100, 160);
+                // corner arcs
+                [[60,60],[GW-60,60],[60,GH-60],[GW-60,GH-60]].forEach(([cx2,cy2]) => {
+                    const aStart = Math.atan2(GH/2-cy2, GW/2-cx2) - 0.4;
+                    vx.beginPath(); vx.arc(cx2, cy2, 20, aStart, aStart + 0.8); vx.stroke();
+                });
+                // soccer balls scattered off-road
+                const drawBall = (bx, by, r) => {
+                    vx.fillStyle = '#fff';
+                    vx.beginPath(); vx.arc(bx, by, r, 0, Math.PI*2); vx.fill();
+                    vx.strokeStyle = '#111'; vx.lineWidth = 0.8;
+                    vx.stroke();
+                    // pentagon patch approximation
+                    vx.fillStyle = '#111';
+                    const pts = 5;
+                    for (let p = 0; p < pts; p++) {
+                        const a = (p / pts) * Math.PI * 2 - Math.PI / 2;
+                        vx.beginPath();
+                        vx.arc(bx + Math.cos(a)*r*0.45, by + Math.sin(a)*r*0.45, r*0.22, 0, Math.PI*2);
+                        vx.fill();
+                    }
+                    vx.beginPath(); vx.arc(bx, by, r*0.22, 0, Math.PI*2); vx.fill();
+                };
+                for (let i = 0; i < 10; i++) drawBall(srand()*GW, srand()*GH, 5 + srand()*5);
+                // road shoulder — white line
+                vx.strokeStyle = '#bbb'; vx.lineWidth = t.rw + 10; vx.setLineDash([]);
+                vx.lineCap = 'round'; vx.lineJoin = 'round';
+                drawPath(vx, wp); vx.stroke();
+                // road surface — clean short-cut grass
+                vx.strokeStyle = '#3aaa3a'; vx.lineWidth = t.rw;
+                drawPath(vx, wp); vx.stroke();
+                // inner detail
+                vx.strokeStyle = '#35993a'; vx.lineWidth = t.rw - 12;
+                drawPath(vx, wp); vx.stroke();
+                // centre line — white dashes
+                vx.strokeStyle = '#fff'; vx.lineWidth = 2; vx.setLineDash([6, 10]);
+                drawPath(vx, wp); vx.stroke(); vx.setLineDash([]);
+                // mud as puddles
+                t.mud.forEach(m => {
+                    const g = vx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r);
+                    g.addColorStop(0, 'rgba(100,70,30,0.85)'); g.addColorStop(1, 'rgba(60,40,10,0.1)');
+                    vx.fillStyle = g; vx.beginPath(); vx.arc(m.x, m.y, m.r, 0, Math.PI * 2); vx.fill();
+                });
+
+            } else if (asian) {
+                // ── ASIAN: cherry blossom park with pagoda silhouettes ──
+                // soft pale sky
+                vx.fillStyle = '#f5e6f0'; vx.fillRect(0, 0, GW, GH);
+                // gentle pink-purple gradient wash
+                const skyG = vx.createLinearGradient(0,0,0,GH);
+                skyG.addColorStop(0,'rgba(220,160,190,0.45)'); skyG.addColorStop(1,'rgba(180,120,160,0.1)');
+                vx.fillStyle = skyG; vx.fillRect(0,0,GW,GH);
+                // blossom petal rain clusters
+                const drawPetal = (px2, py2, r, angle) => {
+                    vx.save(); vx.translate(px2, py2); vx.rotate(angle);
+                    vx.fillStyle = `rgba(${220+(srand()*30|0)},${100+(srand()*60|0)},${150+(srand()*40|0)},0.75)`;
+                    vx.beginPath(); vx.ellipse(0, 0, r*1.6, r*0.8, 0, 0, Math.PI*2); vx.fill();
+                    vx.restore();
+                };
+                for (let i = 0; i < 120; i++) drawPetal(srand()*GW, srand()*GH, 2+srand()*4, srand()*Math.PI*2);
+                // cherry blossom trees (trunk + blossom cloud)
+                const drawTree = (tx, ty, h) => {
+                    vx.fillStyle = '#5a3010'; vx.fillRect(tx-3, ty-h, 6, h);
+                    // branches
+                    vx.strokeStyle = '#5a3010'; vx.lineWidth = 2;
+                    [[-0.6,-0.35],[0.5,-0.4],[-0.3,-0.6],[0.2,-0.65]].forEach(([dx,dy]) => {
+                        vx.beginPath(); vx.moveTo(tx, ty-h*0.6);
+                        vx.lineTo(tx+dx*h*0.5, ty+dy*h); vx.stroke();
+                    });
+                    // blossom cloud
+                    for (let b = 0; b < 7; b++) {
+                        const ba = srand()*Math.PI*2, bd = srand()*h*0.55;
+                        vx.fillStyle = `rgba(240,${140+(srand()*60|0)},${170+(srand()*40|0)},0.7)`;
+                        vx.beginPath(); vx.arc(tx+Math.cos(ba)*bd, ty-h+Math.sin(ba)*bd*0.6, h*0.18+srand()*h*0.1, 0, Math.PI*2); vx.fill();
+                    }
+                };
+                for (let i = 0; i < 8; i++) drawTree(srand()*GW, srand()*GH*0.85+GH*0.1, 35+srand()*30);
+                // pagoda silhouettes
+                const drawPagoda = (px3, py3, scale) => {
+                    const floors = 3;
+                    vx.fillStyle = 'rgba(80,20,10,0.7)';
+                    for (let f = 0; f < floors; f++) {
+                        const fw = (floors-f)*22*scale, fh = 12*scale, fy = py3 - f*18*scale;
+                        vx.fillRect(px3-fw/2, fy-fh, fw, fh);
+                        // roof flare
+                        vx.beginPath(); vx.moveTo(px3-fw/2-6*scale, fy-fh);
+                        vx.lineTo(px3, fy-fh-10*scale); vx.lineTo(px3+fw/2+6*scale, fy-fh); vx.fill();
+                    }
+                    // spire
+                    vx.fillRect(px3-2*scale, py3-floors*18*scale-20*scale, 4*scale, 20*scale);
+                };
+                drawPagoda(120, 580, 1.0);
+                drawPagoda(880, 200, 0.8);
+                drawPagoda(550, 680, 0.7);
+                // road shoulder — stone path
+                vx.strokeStyle = '#c8a888'; vx.lineWidth = t.rw + 10;
+                vx.lineCap = 'round'; vx.lineJoin = 'round'; vx.setLineDash([]);
+                drawPath(vx, wp); vx.stroke();
+                // road surface — terracotta
+                vx.strokeStyle = '#d4907a'; vx.lineWidth = t.rw;
+                drawPath(vx, wp); vx.stroke();
+                // inner detail
+                vx.strokeStyle = '#c8806a'; vx.lineWidth = t.rw - 12;
+                drawPath(vx, wp); vx.stroke();
+                // centre dashes — red
+                vx.strokeStyle = '#cc2020'; vx.lineWidth = 1; vx.setLineDash([8, 14]);
+                drawPath(vx, wp); vx.stroke(); vx.setLineDash([]);
+                // mud as koi pond puddles
+                t.mud.forEach(m => {
+                    const g = vx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r);
+                    g.addColorStop(0, 'rgba(60,100,160,0.8)'); g.addColorStop(1, 'rgba(40,80,140,0.1)');
+                    vx.fillStyle = g; vx.beginPath(); vx.arc(m.x, m.y, m.r, 0, Math.PI * 2); vx.fill();
+                    // koi dot
+                    vx.fillStyle = 'rgba(255,80,0,0.7)';
+                    vx.beginPath(); vx.arc(m.x+srand()*m.r*0.4, m.y+srand()*m.r*0.4, 3, 0, Math.PI*2); vx.fill();
+                });
+
+            } else {
+                // grass background with subtle patches
+                vx.fillStyle = '#4a8a3a'; vx.fillRect(0, 0, GW, GH);
+                for (let i = 0; i < 30; i++) {
+                    const shade = 60 + (srand() * 30 | 0);
+                    vx.fillStyle = `rgb(${shade},${shade + 50},${shade - 10})`;
+                    vx.beginPath(); vx.arc(srand() * GW, srand() * GH, 20 + srand() * 60, 0, Math.PI * 2); vx.fill();
+                }
+                // road shoulder
+                vx.strokeStyle = '#888'; vx.lineWidth = t.rw + 10;
+                vx.lineCap = 'round'; vx.lineJoin = 'round';
+                drawPath(vx, wp); vx.stroke();
+                // road surface
+                vx.strokeStyle = '#555'; vx.lineWidth = t.rw;
+                drawPath(vx, wp); vx.stroke();
+                // inner detail (subtle asphalt variation)
+                vx.strokeStyle = '#5a5a5a'; vx.lineWidth = t.rw - 12;
+                drawPath(vx, wp); vx.stroke();
+                // centre dashes
+                vx.strokeStyle = '#6a6a6a'; vx.lineWidth = 1; vx.setLineDash([8, 14]);
+                drawPath(vx, wp); vx.stroke(); vx.setLineDash([]);
+                // mud zones
+                t.mud.forEach(m => {
+                    const g = vx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r);
+                    g.addColorStop(0, 'rgba(80,60,35,0.9)'); g.addColorStop(1, 'rgba(80,60,35,0.2)');
+                    vx.fillStyle = g; vx.beginPath(); vx.arc(m.x, m.y, m.r, 0, Math.PI * 2); vx.fill();
+                });
             }
-
-            // road shoulder
-            vx.strokeStyle = '#888'; vx.lineWidth = t.rw + 10;
-            vx.lineCap = 'round'; vx.lineJoin = 'round';
-            drawPath(vx, wp); vx.stroke();
-
-            // road surface
-            vx.strokeStyle = '#555'; vx.lineWidth = t.rw;
-            drawPath(vx, wp); vx.stroke();
-
-            // inner detail (subtle asphalt variation)
-            vx.strokeStyle = '#5a5a5a'; vx.lineWidth = t.rw - 12;
-            drawPath(vx, wp); vx.stroke();
-
-            // centre dashes
-            vx.strokeStyle = '#6a6a6a'; vx.lineWidth = 1; vx.setLineDash([8, 14]);
-            drawPath(vx, wp); vx.stroke(); vx.setLineDash([]);
-
-            // mud zones
-            t.mud.forEach(m => {
-                const g = vx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r);
-                g.addColorStop(0, 'rgba(80,60,35,0.9)'); g.addColorStop(1, 'rgba(80,60,35,0.2)');
-                vx.fillStyle = g; vx.beginPath(); vx.arc(m.x, m.y, m.r, 0, Math.PI * 2); vx.fill();
-            });
 
             // start / finish line
             const s0 = wp[0], s1 = wp[1];
             const sa = Math.atan2(s1.y - s0.y, s1.x - s0.x);
             const pa = sa + Math.PI / 2;
             vx.save();
-            vx.strokeStyle = '#fff'; vx.lineWidth = 5;
+            vx.strokeStyle = halloween ? '#ff6600' : soccer ? '#fff' : asian ? '#cc2020' : '#fff'; vx.lineWidth = 5;
             vx.beginPath();
             vx.moveTo(s0.x + Math.cos(pa) * t.rw / 2, s0.y + Math.sin(pa) * t.rw / 2);
             vx.lineTo(s0.x - Math.cos(pa) * t.rw / 2, s0.y - Math.sin(pa) * t.rw / 2);
             vx.stroke();
             // checkerboard
             for (let i = -3; i <= 3; i++) {
-                vx.fillStyle = i % 2 === 0 ? '#000' : '#fff';
+                vx.fillStyle = halloween
+                    ? (i % 2 === 0 ? '#c85000' : '#300030')
+                    : soccer
+                    ? (i % 2 === 0 ? '#fff' : '#1a6e1a')
+                    : asian
+                    ? (i % 2 === 0 ? '#cc2020' : '#ffd0d0')
+                    : (i % 2 === 0 ? '#000' : '#fff');
                 const bx = s0.x + Math.cos(pa) * i * (t.rw / 7);
                 const by = s0.y + Math.sin(pa) * i * (t.rw / 7);
                 vx.fillRect(bx - 3, by - 3, 6, 6);
@@ -326,7 +625,7 @@ class BootScene extends Phaser.Scene {
             vx.restore();
 
             // track name subtle watermark
-            vx.fillStyle = 'rgba(0,0,0,0.25)'; vx.font = 'bold 13px monospace';
+            vx.fillStyle = halloween ? 'rgba(200,80,0,0.5)' : soccer ? 'rgba(0,80,0,0.35)' : asian ? 'rgba(160,30,30,0.45)' : 'rgba(0,0,0,0.25)'; vx.font = 'bold 13px monospace';
             vx.textAlign = 'left'; vx.fillText(t.name, 8, GH - 8);
 
             this.textures.addCanvas('tv_' + idx, vc);
@@ -421,10 +720,52 @@ class TitleScene extends Phaser.Scene {
             ly += parseInt(sz) + 8;
         });
 
-        const pt = this.add.text(GW / 2, 640, 'PRESS ENTER TO START', {
+        const pt = this.add.text(GW / 2, 620, 'PRESS ENTER TO START', {
             fontSize: '26px', fontFamily: 'monospace', color: '#fff',
         }).setOrigin(0.5);
         this.tweens.add({ targets: pt, alpha: 0.2, duration: 600, yoyo: true, repeat: -1 });
+
+        const mapHint = this.add.text(GW / 2, 665, 'Triple-tap 1–8 to jump to a track  (e.g. 777 = track 7)', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#555',
+        }).setOrigin(0.5);
+
+        // track display — updated as player types
+        const mapSelect = this.add.text(GW / 2, 700, '', {
+            fontSize: '20px', fontFamily: 'monospace', color: '#ff6600', fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        // triple-tap map select: collect up to 3 identical digits within 1.2 s
+        let digitBuf = '';
+        let digitTimer = null;
+        const flushDigits = () => {
+            digitBuf = '';
+            mapSelect.setText('');
+            digitTimer = null;
+        };
+
+        this.input.keyboard.on('keydown', (ev) => {
+            const d = ev.key;
+            if (d >= '1' && d <= '8') {
+                if (digitBuf.length > 0 && d !== digitBuf[0]) {
+                    // different digit — reset
+                    digitBuf = d;
+                } else {
+                    digitBuf += d;
+                }
+                mapSelect.setText('TRACK SELECT: ' + digitBuf);
+                if (digitTimer) clearTimeout(digitTimer);
+                if (digitBuf.length === 3) {
+                    // confirmed — jump to that track
+                    const trackNum = parseInt(d);
+                    gs = resetGameState();
+                    gs.raceNum = trackNum - 1;
+                    flushDigits();
+                    this.scene.start('RaceScene');
+                } else {
+                    digitTimer = setTimeout(flushDigits, 1200);
+                }
+            }
+        });
 
         const startGame = () => {
             gs = resetGameState();
@@ -509,12 +850,16 @@ class RaceScene extends Phaser.Scene {
             fontStyle: 'bold', stroke: '#000', strokeThickness: 5,
         }).setOrigin(0.5).setDepth(100);
 
+        SFX.countdownBeep(false); // '3' beep
+
         this.time.delayedCall(1000, () => {
-            this.cdTxt.setText('2');
+            this.cdTxt.setText('2'); SFX.countdownBeep(false);
             this.time.delayedCall(1000, () => {
-                this.cdTxt.setText('1');
+                this.cdTxt.setText('1'); SFX.countdownBeep(false);
                 this.time.delayedCall(1000, () => {
                     this.cdTxt.setText('GO!').setColor('#00ff00');
+                    SFX.countdownBeep(true);
+                    SFX.engineStart();
                     this.started = true;
                     this.time.delayedCall(600, () => this.cdTxt.destroy());
                 });
@@ -577,9 +922,13 @@ class RaceScene extends Phaser.Scene {
             t.vy += Math.sin(t.a) * t.acc * am * t.tMult * dt;
         }
 
+        // engine SFX
+        SFX.engineUpdate(Math.hypot(t.vx, t.vy), t.maxSpd, this.cur.up.isDown);
+
         if (Phaser.Input.Keyboard.JustDown(this.spc) && t.nitros > 0 && !t.nAct) {
             t.nAct = true; t.nitros--; gs.nitros = t.nitros; t.nTmr = 90;
             this.nitroFX(t);
+            SFX.nitro();
         }
     }
 
@@ -718,9 +1067,11 @@ class RaceScene extends Phaser.Scene {
                 if (p.type === 'money') {
                     gs.money += p.val;
                     this.floatTxt(p.x, p.y, '+$' + p.val.toLocaleString(), '#FFD700');
+                    SFX.pickupMoney();
                 } else {
                     t.nitros++; gs.nitros = t.nitros;
                     this.floatTxt(p.x, p.y, '+1 NITRO', '#ff6600');
+                    SFX.pickupNitro();
                 }
             }
         });
@@ -804,6 +1155,7 @@ class RaceScene extends Phaser.Scene {
             pp, prize,
         };
         this.sound.stopAll();
+        SFX.engineStop();
         this.time.delayedCall(1000, () => this.scene.start('ResultsScene'));
     }
 }
