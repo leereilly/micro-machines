@@ -27,6 +27,17 @@ const TCOLORS = [C.player, C.ai1, C.ai2, C.ai3];
 const TKEYS = ['player', 'ai1', 'ai2', 'ai3'];
 const PRIZES = [100000, 90000, 80000, 70000];
 
+const TRACK_MUSIC = [
+    'music/mfcc-racing-speed-action-music-115041.mp3',
+    'music/mfcc-speed-speed-racing-cycling-music-257904.mp3',
+    'music/mfcc-asian-background-music-1-min-25-sec-371823.mp3',
+    'music/mfcc-speed-action-racing-music-120442.mp3',
+    'music/mfcc-african-background-music-372732.mp3',
+    'music/mfcc-sports-football-soccer-music-414731.mp3',
+    'music/mfcc-speed-racing-action-music-115039.mp3',
+    'music/mfcc-halloween-background-music-428574.mp3',
+];
+
 const TRUCK_SPRITES = {
     player: 'kenney_car_red',
     ai1: 'kenney_car_blue',
@@ -183,6 +194,10 @@ class BootScene extends Phaser.Scene {
         this.load.image(TRUCK_SPRITES.ai1, 'kenney_racing-pack/PNG/Cars/car_blue_1.png');
         this.load.image(TRUCK_SPRITES.ai2, 'kenney_racing-pack/PNG/Cars/car_yellow_1.png');
         this.load.image(TRUCK_SPRITES.ai3, 'kenney_racing-pack/PNG/Cars/car_green_1.png');
+
+        TRACK_MUSIC.forEach((path, i) => {
+            this.load.audio('music_' + i, path);
+        });
     }
 
     create() {
@@ -431,6 +446,13 @@ class RaceScene extends Phaser.Scene {
 
         // track background
         this.add.image(GW / 2, GH / 2, 'tv_' + ti);
+
+        // music: stop any previous track, play the one for this race
+        this.sound.stopAll();
+        const musicKey = 'music_' + (gs.raceNum % TRACK_MUSIC.length);
+        if (this.cache.audio.exists(musicKey)) {
+            this.sound.play(musicKey, { loop: true, volume: 0.5 });
+        }
 
         // create trucks
         this.trucks = [];
@@ -781,6 +803,7 @@ class RaceScene extends Phaser.Scene {
             order: this.finOrder.map(t => ({ name: t.name, isP: t.isP, pos: t.finPos })),
             pp, prize,
         };
+        this.sound.stopAll();
         this.time.delayedCall(1000, () => this.scene.start('ResultsScene'));
     }
 }
