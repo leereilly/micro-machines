@@ -46,6 +46,13 @@ const TRACK_MUSIC = [
 const SW_W = 2048;
 const SW_H = 1536;
 
+// Desk track — massive procedural map (~10× the area of synthwave)
+// Internal canvas rendered at half resolution (cpxScale=2) to stay
+// well within WebGL texture limits; world coords are still full size.
+const TEN_W = SW_W * 3;  // 6144
+const TEN_H = SW_H * 3;  // 4608
+const TEN_SCALE = 2;
+
 const TRUCK_SPRITES = {
     player: 'car_copilot',
     ai1: 'car_frank',
@@ -167,6 +174,19 @@ const TRACKS = [
         ],
         mud: [{x:1500,y:900,r:30},{x:400,y:500,r:28},{x:1700,y:1100,r:26}],
     },
+    {
+        // ── DESK CHAOS — procedurally generated, single lap, ~10× NEON DRIVE ──
+        name: 'DESK CHAOS',
+        desk: true,
+        procedural: true,
+        laps: 1,
+        W: TEN_W, H: TEN_H,
+        rw: ROAD_W + 4,
+        cpxScale: TEN_SCALE,
+        cp: [],      // filled in at genTracks() time, per-session
+        mud: [],
+        boosts: [], ramps: [], tunnels: [], decor: null,
+    },
 ];
 
 // ── GAME STATE ──────────────────────────────────────────────
@@ -213,6 +233,462 @@ function drawPath(ctx, pts) {
 function hexCSS(c) { return '#' + c.toString(16).padStart(6, '0'); }
 
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+// ── DESK TRACK (procedural, per-session) ────────────────────
+// Generates a huge closed-loop road winding across a virtual computer desk.
+// Called once per page load from PreloadScene.genTracks().
+function generateDeskCp(t) {
+    const pseed0 = ((Date.now() & 0x7fffffff) ^ (Math.random() * 1e9 | 0)) | 1;
+    let s = pseed0;
+    const prand = () => { s = (s * 48271) % 0x7fffffff; return s / 0x7fffffff; };
+    t._prand = prand;
+
+    const W = t.W, H = t.H, cx = W / 2, cy = H / 2;
+    // Perlin-lite: lay down N sample points around an ellipse, each with
+    // independent radial jitter to give the loop twisty character.
+    const N = 46;
+    const cp = [];
+    // radius envelope: stay clear of edges so decor has room
+    const baseRx = W * 0.38, baseRy = H * 0.38;
+    // two low-freq harmonics sampled per generation for flavour
+    const h1 = 0.14 + prand() * 0.12, h2 = 0.22 + prand() * 0.12;
+    const ph1 = prand() * Math.PI * 2, ph2 = prand() * Math.PI * 2;
+    for (let i = 0; i < N; i++) {
+        const a = (i / N) * Math.PI * 2;
+        const wobble = 1
+            + h1 * Math.sin(a * 3 + ph1)
+            + h2 * Math.sin(a * 5 + ph2)
+            + (prand() - 0.5) * 0.18;
+        const rx = baseRx * Math.max(0.55, Math.min(1.2, wobble));
+        const ry = baseRy * Math.max(0.55, Math.min(1.2, wobble * (0.9 + prand() * 0.2)));
+        cp.push({ x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry });
+    }
+    t.cp = cp;
+
+    // Coffee-spill mud pools sprinkled along the loop
+    t.mud = [];
+    for (let i = 0; i < 6; i++) {
+        const base = cp[(prand() * N) | 0];
+        t.mud.push({
+            x: base.x + (prand() - 0.5) * 300,
+            y: base.y + (prand() - 0.5) * 300,
+            r: 60 + prand() * 80,
+        });
+    }
+}
+
+function generateDeskExtras(t, wp) {
+    const prand = t._prand || Math.random;
+    const N = wp.length;
+    // Boost chevrons every ~14 spline points (skip the very start so players
+    // don't get launched at GO)
+    t.boosts = [];
+    for (let i = 20; i < N - 6; i += 14) {
+        const p = wp[i], q = wp[(i + 2) % N];
+        t.boosts.push({
+            x: p.x, y: p.y,
+            a: Math.atan2(q.y - p.y, q.x - p.x),
+            cd: 0,
+        });
+    }
+    // Ramps — sparser, also aligned to track direction
+    t.ramps = [];
+    for (let r = 0; r < 7; r++) {
+        const wi = 40 + ((prand() * (N - 60)) | 0);
+        const p = wp[wi], q = wp[(wi + 2) % N];
+        t.ramps.push({
+            x: p.x, y: p.y,
+            a: Math.atan2(q.y - p.y, q.x - p.x),
+            cd: 0,
+        });
+    }
+    // Tunnels — a few contiguous spans
+    t.tunnels = [];
+    const tunCount = 3;
+    for (let k = 0; k < tunCount; k++) {
+        const startI = 60 + ((k * N / tunCount) | 0) + ((prand() * 40) | 0);
+        const len = 18 + ((prand() * 14) | 0);
+        t.tunnels.push({ startI: startI % N, len });
+    }
+    // Decor placements (world coords). These are cosmetic; the procedural
+    // loop already wanders around the desk so overlap with props just makes
+    // the road "drive over" them.
+    const W = t.W, H = t.H;
+    t.decor = {
+        laptop:   { x: W * 0.28, y: H * 0.25, w: 1700, h: 1100 },
+        coffee:   { x: W * 0.78, y: H * 0.22, r: 220 },
+        mouse:    { x: W * 0.82, y: H * 0.62, w: 260, h: 420 },
+        keyboard: { x: W * 0.52, y: H * 0.72, w: 2000, h: 680 },
+        pencil:   { x: W * 0.18, y: H * 0.78, len: 1600, ang: -0.35 },
+        phone:    { x: W * 0.65, y: H * 0.42, w: 320, h: 680 },
+    };
+}
+
+// Draws the desk theme into the (already-scaled) canvas context. World coords.
+function drawDeskTrack(vx, t, wp, srand) {
+    const W = t.W, H = t.H;
+    // ── wood desk surface ──
+    // base wood colour gradient
+    const bg = vx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#7a4a24');
+    bg.addColorStop(0.5, '#8a5a30');
+    bg.addColorStop(1, '#6a3e1e');
+    vx.fillStyle = bg; vx.fillRect(0, 0, W, H);
+    // wood grain streaks
+    vx.strokeStyle = 'rgba(40,20,10,0.25)';
+    for (let i = 0; i < 260; i++) {
+        const gy = srand() * H;
+        const gx0 = srand() * W * 0.2;
+        const gx1 = gx0 + W * (0.5 + srand() * 0.6);
+        vx.lineWidth = 0.6 + srand() * 1.4;
+        vx.beginPath();
+        vx.moveTo(gx0, gy);
+        vx.bezierCurveTo(gx0 + 200, gy + (srand() - 0.5) * 40, gx1 - 200, gy + (srand() - 0.5) * 40, gx1, gy);
+        vx.stroke();
+    }
+    // occasional knots
+    for (let i = 0; i < 22; i++) {
+        const kx = srand() * W, ky = srand() * H, kr = 8 + srand() * 22;
+        const kg = vx.createRadialGradient(kx, ky, 1, kx, ky, kr);
+        kg.addColorStop(0, 'rgba(30,14,6,0.85)');
+        kg.addColorStop(1, 'rgba(30,14,6,0)');
+        vx.fillStyle = kg; vx.beginPath(); vx.arc(kx, ky, kr, 0, Math.PI * 2); vx.fill();
+    }
+
+    const d = t.decor;
+
+    // ── LAPTOP ──
+    // outer shadow
+    vx.fillStyle = 'rgba(0,0,0,0.35)';
+    vx.fillRect(d.laptop.x - d.laptop.w / 2 + 18, d.laptop.y - d.laptop.h / 2 + 22, d.laptop.w, d.laptop.h);
+    // silver body
+    vx.fillStyle = '#d0d0d5';
+    vx.fillRect(d.laptop.x - d.laptop.w / 2, d.laptop.y - d.laptop.h / 2, d.laptop.w, d.laptop.h);
+    // darker inner screen area (closed lid look)
+    vx.fillStyle = '#2a2a30';
+    vx.fillRect(d.laptop.x - d.laptop.w / 2 + 40, d.laptop.y - d.laptop.h / 2 + 40, d.laptop.w - 80, d.laptop.h - 80);
+    // subtle silver bezel highlight
+    vx.strokeStyle = 'rgba(255,255,255,0.25)'; vx.lineWidth = 4;
+    vx.strokeRect(d.laptop.x - d.laptop.w / 2 + 4, d.laptop.y - d.laptop.h / 2 + 4, d.laptop.w - 8, d.laptop.h - 8);
+    // hinge strip on far edge
+    vx.fillStyle = '#8a8a90';
+    vx.fillRect(d.laptop.x - d.laptop.w / 2, d.laptop.y + d.laptop.h / 2 - 24, d.laptop.w, 8);
+
+    // GitHub Octocat sticker on laptop lid
+    (function drawOctocat() {
+        const ox = d.laptop.x + d.laptop.w * 0.22, oy = d.laptop.y - d.laptop.h * 0.15;
+        const R = 180;
+        // sticker backing (round white)
+        vx.fillStyle = '#fff';
+        vx.beginPath(); vx.arc(ox, oy, R + 14, 0, Math.PI * 2); vx.fill();
+        vx.strokeStyle = 'rgba(0,0,0,0.2)'; vx.lineWidth = 3;
+        vx.beginPath(); vx.arc(ox, oy, R + 14, 0, Math.PI * 2); vx.stroke();
+        // octocat silhouette
+        vx.fillStyle = '#24292e';
+        // head
+        vx.beginPath(); vx.arc(ox, oy - 10, R * 0.65, 0, Math.PI * 2); vx.fill();
+        // ears
+        vx.beginPath();
+        vx.moveTo(ox - R * 0.55, oy - R * 0.45);
+        vx.lineTo(ox - R * 0.25, oy - R * 0.85);
+        vx.lineTo(ox - R * 0.15, oy - R * 0.5);
+        vx.closePath(); vx.fill();
+        vx.beginPath();
+        vx.moveTo(ox + R * 0.55, oy - R * 0.45);
+        vx.lineTo(ox + R * 0.25, oy - R * 0.85);
+        vx.lineTo(ox + R * 0.15, oy - R * 0.5);
+        vx.closePath(); vx.fill();
+        // tentacles (three drooping below)
+        for (let i = -1; i <= 1; i++) {
+            vx.beginPath();
+            vx.moveTo(ox + i * R * 0.3, oy + R * 0.2);
+            vx.quadraticCurveTo(ox + i * R * 0.5, oy + R * 0.9, ox + i * R * 0.2, oy + R * 1.1);
+            vx.quadraticCurveTo(ox + i * R * 0.4, oy + R * 0.9, ox + i * R * 0.5, oy + R * 0.3);
+            vx.closePath(); vx.fill();
+        }
+        // eyes
+        vx.fillStyle = '#fff';
+        vx.beginPath(); vx.arc(ox - R * 0.22, oy - 20, 16, 0, Math.PI * 2); vx.fill();
+        vx.beginPath(); vx.arc(ox + R * 0.22, oy - 20, 16, 0, Math.PI * 2); vx.fill();
+        vx.fillStyle = '#24292e';
+        vx.beginPath(); vx.arc(ox - R * 0.22 + 4, oy - 18, 6, 0, Math.PI * 2); vx.fill();
+        vx.beginPath(); vx.arc(ox + R * 0.22 + 4, oy - 18, 6, 0, Math.PI * 2); vx.fill();
+        // sticker caption
+        vx.fillStyle = '#24292e';
+        vx.font = 'bold 30px monospace'; vx.textAlign = 'center'; vx.textBaseline = 'middle';
+        vx.fillText('GitHub', ox, oy + R + 40);
+    })();
+
+    // ── KEYBOARD ──
+    const kb = d.keyboard;
+    vx.fillStyle = 'rgba(0,0,0,0.35)';
+    vx.fillRect(kb.x - kb.w / 2 + 14, kb.y - kb.h / 2 + 14, kb.w, kb.h);
+    vx.fillStyle = '#e8e8ec';
+    vx.fillRect(kb.x - kb.w / 2, kb.y - kb.h / 2, kb.w, kb.h);
+    vx.strokeStyle = 'rgba(0,0,0,0.2)'; vx.lineWidth = 3;
+    vx.strokeRect(kb.x - kb.w / 2, kb.y - kb.h / 2, kb.w, kb.h);
+    // keys grid
+    const cols = 16, rows = 5;
+    const kp = 8;
+    const keyW = (kb.w - kp * (cols + 1)) / cols;
+    const keyH = (kb.h - kp * (rows + 1)) / rows;
+    vx.fillStyle = '#f8f8fb';
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const kx = kb.x - kb.w / 2 + kp + c * (keyW + kp);
+            const ky = kb.y - kb.h / 2 + kp + r * (keyH + kp);
+            vx.fillRect(kx, ky, keyW, keyH);
+        }
+    }
+    // spacebar (last row middle)
+    vx.fillStyle = '#f8f8fb';
+    vx.fillRect(kb.x - kb.w * 0.25, kb.y + kb.h / 2 - kp - keyH, kb.w * 0.5, keyH);
+
+    // ── COFFEE MUG (top-down) ──
+    const cf = d.coffee;
+    // saucer shadow
+    vx.fillStyle = 'rgba(0,0,0,0.35)';
+    vx.beginPath(); vx.arc(cf.x + 14, cf.y + 14, cf.r * 1.15, 0, Math.PI * 2); vx.fill();
+    // mug outer (white ceramic)
+    vx.fillStyle = '#f4f4f4';
+    vx.beginPath(); vx.arc(cf.x, cf.y, cf.r, 0, Math.PI * 2); vx.fill();
+    vx.strokeStyle = '#888'; vx.lineWidth = 4;
+    vx.beginPath(); vx.arc(cf.x, cf.y, cf.r, 0, Math.PI * 2); vx.stroke();
+    // handle
+    vx.strokeStyle = '#f4f4f4'; vx.lineWidth = 36;
+    vx.beginPath(); vx.arc(cf.x + cf.r, cf.y, cf.r * 0.55, -Math.PI * 0.4, Math.PI * 0.4); vx.stroke();
+    vx.strokeStyle = '#888'; vx.lineWidth = 3;
+    vx.beginPath(); vx.arc(cf.x + cf.r, cf.y, cf.r * 0.55 + 18, -Math.PI * 0.4, Math.PI * 0.4); vx.stroke();
+    vx.beginPath(); vx.arc(cf.x + cf.r, cf.y, cf.r * 0.55 - 18, -Math.PI * 0.4, Math.PI * 0.4); vx.stroke();
+    // coffee surface (inner)
+    const cg = vx.createRadialGradient(cf.x, cf.y, 0, cf.x, cf.y, cf.r * 0.78);
+    cg.addColorStop(0, '#6b3e1c'); cg.addColorStop(1, '#3a1e0c');
+    vx.fillStyle = cg;
+    vx.beginPath(); vx.arc(cf.x, cf.y, cf.r * 0.78, 0, Math.PI * 2); vx.fill();
+    // foam / crema dots
+    vx.fillStyle = 'rgba(210,170,120,0.6)';
+    for (let i = 0; i < 18; i++) {
+        const ra = srand() * Math.PI * 2, rd = srand() * cf.r * 0.7;
+        vx.beginPath(); vx.arc(cf.x + Math.cos(ra) * rd, cf.y + Math.sin(ra) * rd, 2 + srand() * 4, 0, Math.PI * 2); vx.fill();
+    }
+    // label (a tiny "☕")
+    vx.fillStyle = '#fff'; vx.font = 'bold 90px monospace'; vx.textAlign = 'center'; vx.textBaseline = 'middle';
+    vx.fillText('☕', cf.x, cf.y + 6);
+
+    // ── MOUSE ──
+    const m = d.mouse;
+    vx.fillStyle = 'rgba(0,0,0,0.3)';
+    vx.beginPath(); vx.ellipse(m.x + 10, m.y + 14, m.w / 2, m.h / 2, 0, 0, Math.PI * 2); vx.fill();
+    vx.fillStyle = '#e0e0e4';
+    vx.beginPath(); vx.ellipse(m.x, m.y, m.w / 2, m.h / 2, 0, 0, Math.PI * 2); vx.fill();
+    vx.strokeStyle = '#999'; vx.lineWidth = 3;
+    vx.beginPath(); vx.ellipse(m.x, m.y, m.w / 2, m.h / 2, 0, 0, Math.PI * 2); vx.stroke();
+    // split line
+    vx.strokeStyle = '#aaa'; vx.lineWidth = 2;
+    vx.beginPath(); vx.moveTo(m.x, m.y - m.h / 2 + 20); vx.lineTo(m.x, m.y); vx.stroke();
+    // scroll wheel
+    vx.fillStyle = '#666';
+    vx.fillRect(m.x - 8, m.y - 40, 16, 28);
+    // mouse cable
+    vx.strokeStyle = '#ddd'; vx.lineWidth = 10;
+    vx.beginPath();
+    vx.moveTo(m.x, m.y - m.h / 2);
+    vx.bezierCurveTo(m.x + 140, m.y - m.h / 2 - 180, m.x + 260, m.y - m.h / 2 - 260, m.x + 380, m.y - m.h / 2 - 200);
+    vx.stroke();
+
+    // ── PENCIL ──
+    const pc = d.pencil;
+    vx.save();
+    vx.translate(pc.x, pc.y);
+    vx.rotate(pc.ang);
+    // shadow
+    vx.fillStyle = 'rgba(0,0,0,0.3)';
+    vx.fillRect(14, -50 + 18, pc.len, 100);
+    // yellow body
+    vx.fillStyle = '#f6c21a';
+    vx.fillRect(0, -50, pc.len * 0.78, 100);
+    // paint stripe
+    vx.fillStyle = '#d79a08';
+    vx.fillRect(0, -50, pc.len * 0.78, 18);
+    vx.fillRect(0, 32, pc.len * 0.78, 18);
+    // ferrule (metal band)
+    vx.fillStyle = '#c0c0c8';
+    vx.fillRect(pc.len * 0.78, -50, pc.len * 0.06, 100);
+    // grooves on ferrule
+    vx.strokeStyle = '#8a8a92'; vx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) {
+        vx.beginPath();
+        vx.moveTo(pc.len * 0.78 + i * (pc.len * 0.06 / 5), -50);
+        vx.lineTo(pc.len * 0.78 + i * (pc.len * 0.06 / 5), 50);
+        vx.stroke();
+    }
+    // eraser
+    vx.fillStyle = '#ea6ba0';
+    vx.fillRect(pc.len * 0.84, -50, pc.len * 0.16, 100);
+    // sharpened tip (cone)
+    vx.fillStyle = '#e8c28a';
+    vx.beginPath();
+    vx.moveTo(0, -50); vx.lineTo(-pc.len * 0.06, 0); vx.lineTo(0, 50); vx.closePath(); vx.fill();
+    // graphite core
+    vx.fillStyle = '#2a2a2a';
+    vx.beginPath();
+    vx.moveTo(0, -14); vx.lineTo(-pc.len * 0.055, 0); vx.lineTo(0, 14); vx.closePath(); vx.fill();
+    vx.restore();
+
+    // ── IPHONE ──
+    const ph = d.phone;
+    vx.fillStyle = 'rgba(0,0,0,0.35)';
+    vx.fillRect(ph.x - ph.w / 2 + 12, ph.y - ph.h / 2 + 14, ph.w, ph.h);
+    // body
+    vx.fillStyle = '#1a1a1e';
+    const rr = 42;
+    roundRect(vx, ph.x - ph.w / 2, ph.y - ph.h / 2, ph.w, ph.h, rr); vx.fill();
+    // screen
+    vx.fillStyle = '#0a1230';
+    roundRect(vx, ph.x - ph.w / 2 + 14, ph.y - ph.h / 2 + 60, ph.w - 28, ph.h - 120, rr - 14); vx.fill();
+    // notch
+    vx.fillStyle = '#000';
+    vx.fillRect(ph.x - 60, ph.y - ph.h / 2 + 28, 120, 26);
+    // home indicator
+    vx.fillStyle = '#fff';
+    vx.fillRect(ph.x - 50, ph.y + ph.h / 2 - 18, 100, 5);
+    // app icons grid (tiny)
+    vx.fillStyle = '#3a8ef6';
+    for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 4; c++) {
+            const ax = ph.x - ph.w / 2 + 34 + c * 66;
+            const ay = ph.y - ph.h / 2 + 110 + r * 100;
+            vx.fillStyle = `hsl(${(r * 4 + c) * 25}, 70%, 55%)`;
+            roundRect(vx, ax, ay, 48, 48, 12); vx.fill();
+        }
+    }
+
+    // ── ROAD: cable-trace style ──
+    // outer shadow
+    vx.strokeStyle = 'rgba(0,0,0,0.45)'; vx.lineWidth = t.rw + 18;
+    vx.lineCap = 'round'; vx.lineJoin = 'round';
+    vx.save(); vx.translate(10, 12); drawPath(vx, wp); vx.stroke(); vx.restore();
+    // grey shoulder
+    vx.strokeStyle = '#3a3a40'; vx.lineWidth = t.rw + 10;
+    drawPath(vx, wp); vx.stroke();
+    // road surface
+    vx.strokeStyle = '#5a5a60'; vx.lineWidth = t.rw;
+    drawPath(vx, wp); vx.stroke();
+    // inner slightly lighter
+    vx.strokeStyle = '#6a6a72'; vx.lineWidth = t.rw - 14;
+    drawPath(vx, wp); vx.stroke();
+    // yellow centre dashes
+    vx.strokeStyle = '#ffcc33'; vx.lineWidth = 3; vx.setLineDash([18, 26]);
+    drawPath(vx, wp); vx.stroke(); vx.setLineDash([]);
+
+    // Coffee-spill mud
+    t.mud.forEach(mu => {
+        const g = vx.createRadialGradient(mu.x, mu.y, 0, mu.x, mu.y, mu.r);
+        g.addColorStop(0, 'rgba(58,26,10,0.95)');
+        g.addColorStop(0.7, 'rgba(80,40,18,0.6)');
+        g.addColorStop(1, 'rgba(80,40,18,0)');
+        vx.fillStyle = g; vx.beginPath(); vx.arc(mu.x, mu.y, mu.r, 0, Math.PI * 2); vx.fill();
+        // drips
+        vx.fillStyle = 'rgba(40,18,8,0.7)';
+        for (let i = 0; i < 6; i++) {
+            const a2 = srand() * Math.PI * 2;
+            vx.beginPath();
+            vx.arc(mu.x + Math.cos(a2) * mu.r * 1.1, mu.y + Math.sin(a2) * mu.r * 1.1, 4 + srand() * 10, 0, Math.PI * 2);
+            vx.fill();
+        }
+    });
+
+    // Boost chevrons (">>") painted on the road
+    t.boosts.forEach(b => {
+        vx.save();
+        vx.translate(b.x, b.y); vx.rotate(b.a);
+        vx.fillStyle = '#ffee33';
+        for (let k = 0; k < 3; k++) {
+            const off = (k - 1) * 24;
+            vx.beginPath();
+            vx.moveTo(off - 16, -18);
+            vx.lineTo(off + 10, 0);
+            vx.lineTo(off - 16, 18);
+            vx.lineTo(off - 8, 0);
+            vx.closePath(); vx.fill();
+        }
+        // glow outline
+        vx.strokeStyle = 'rgba(255,180,0,0.6)'; vx.lineWidth = 3;
+        for (let k = 0; k < 3; k++) {
+            const off = (k - 1) * 24;
+            vx.beginPath();
+            vx.moveTo(off - 16, -18);
+            vx.lineTo(off + 10, 0);
+            vx.lineTo(off - 16, 18);
+            vx.lineTo(off - 8, 0);
+            vx.closePath(); vx.stroke();
+        }
+        vx.restore();
+    });
+
+    // Ramps — yellow/black warning stripes across the road
+    t.ramps.forEach(r => {
+        vx.save();
+        vx.translate(r.x, r.y); vx.rotate(r.a);
+        for (let k = -3; k <= 3; k++) {
+            vx.fillStyle = k % 2 === 0 ? '#222' : '#ffdd22';
+            vx.fillRect(k * 9 - 4, -t.rw / 2 + 4, 9, t.rw - 8);
+        }
+        // front edge highlight (suggests a raised lip)
+        vx.fillStyle = 'rgba(255,255,255,0.45)';
+        vx.fillRect(25, -t.rw / 2 + 4, 4, t.rw - 8);
+        vx.fillStyle = 'rgba(0,0,0,0.6)';
+        vx.fillRect(-30, -t.rw / 2 + 4, 4, t.rw - 8);
+        vx.restore();
+    });
+
+    // Tunnels — shaded overlay suggesting the road dips beneath something
+    t.tunnels.forEach(tu => {
+        const p0 = wp[tu.startI], p1 = wp[(tu.startI + tu.len) % wp.length];
+        const a = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+        const halfW = t.rw / 2 + 6;
+        // darkened section along the road
+        vx.save();
+        vx.strokeStyle = 'rgba(10,10,14,0.75)'; vx.lineWidth = t.rw + 4;
+        vx.lineCap = 'butt';
+        vx.beginPath();
+        for (let i = 0; i <= tu.len; i++) {
+            const pp = wp[(tu.startI + i) % wp.length];
+            if (i === 0) vx.moveTo(pp.x, pp.y); else vx.lineTo(pp.x, pp.y);
+        }
+        vx.stroke();
+        vx.restore();
+        // entrance & exit arches
+        [p0, p1].forEach((pt, ei) => {
+            const ang = ei === 0 ? a : a + Math.PI;
+            vx.save();
+            vx.translate(pt.x, pt.y); vx.rotate(ang);
+            // arch frame
+            vx.fillStyle = '#b0b0b6';
+            vx.fillRect(-10, -halfW - 18, 20, halfW * 2 + 36);
+            vx.fillStyle = '#555';
+            vx.fillRect(-6, -halfW, 12, halfW * 2);
+            // top lamp
+            vx.fillStyle = '#ffee88';
+            vx.beginPath(); vx.arc(0, -halfW - 6, 5, 0, Math.PI * 2); vx.fill();
+            vx.restore();
+        });
+    });
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+}
 
 // ── PROCEDURAL SFX (Web Audio API) ─────────────────────────
 const SFX = (() => {
@@ -502,6 +978,8 @@ class BootScene extends Phaser.Scene {
 
         TRACKS.forEach((t, idx) => {
             seed = idx * 7919 + 42;
+            // Procedural tracks: build cp fresh each session
+            if (t.procedural && !t.cp.length) generateDeskCp(t);
             // per-track world dimensions (default to screen size)
             t.W = t.W || GW;
             t.H = t.H || GH;
@@ -509,14 +987,25 @@ class BootScene extends Phaser.Scene {
             const wp = spline(t.cp, 20);
             t.wp = wp;
 
+            // procedural extras that depend on the splined waypoints
+            if (t.desk) generateDeskExtras(t, wp);
+
             const halloween = idx === 7;
             const soccer    = idx === 5;
             const asian     = idx === 2;
             const synth     = !!t.synth;
+            const desk      = !!t.desk;
 
             // ── visual ──
-            const vc = document.createElement('canvas'); vc.width = TW; vc.height = TH;
+            // Support internal canvas downscaling for huge tracks (keeps
+            // textures and ImageData within sane limits). World coords are
+            // unchanged — we just apply ctx.scale so draw calls can still
+            // use world-space values.
+            const cs = t.cpxScale || 1;
+            const vc = document.createElement('canvas');
+            vc.width = Math.round(TW / cs); vc.height = Math.round(TH / cs);
             const vx = vc.getContext('2d');
+            if (cs !== 1) vx.scale(1 / cs, 1 / cs);
 
             if (synth) {
                 // ── SYNTHWAVE: top-down neon grid world ──
@@ -1035,6 +1524,8 @@ class BootScene extends Phaser.Scene {
                 }
                 vx.restore();
 
+            } else if (desk) {
+                drawDeskTrack(vx, t, wp, srand);
             } else {
                 // grass background with subtle patches
                 vx.fillStyle = '#4a8a3a'; vx.fillRect(0, 0, GW, GH);
@@ -1069,7 +1560,7 @@ class BootScene extends Phaser.Scene {
             const sa = Math.atan2(s1.y - s0.y, s1.x - s0.x);
             const pa = sa + Math.PI / 2;
             vx.save();
-            vx.strokeStyle = synth ? '#2af0ff' : halloween ? '#ff6600' : soccer ? '#fff' : asian ? '#cc2020' : '#fff'; vx.lineWidth = 5;
+            vx.strokeStyle = synth ? '#2af0ff' : halloween ? '#ff6600' : soccer ? '#fff' : asian ? '#cc2020' : desk ? '#00ff99' : '#fff'; vx.lineWidth = 5;
             vx.beginPath();
             vx.moveTo(s0.x + Math.cos(pa) * t.rw / 2, s0.y + Math.sin(pa) * t.rw / 2);
             vx.lineTo(s0.x - Math.cos(pa) * t.rw / 2, s0.y - Math.sin(pa) * t.rw / 2);
@@ -1084,6 +1575,8 @@ class BootScene extends Phaser.Scene {
                     ? (i % 2 === 0 ? '#fff' : '#1a6e1a')
                     : asian
                     ? (i % 2 === 0 ? '#cc2020' : '#ffd0d0')
+                    : desk
+                    ? (i % 2 === 0 ? '#222' : '#eee')
                     : (i % 2 === 0 ? '#000' : '#fff');
                 const bx = s0.x + Math.cos(pa) * i * (t.rw / 7);
                 const by = s0.y + Math.sin(pa) * i * (t.rw / 7);
@@ -1092,14 +1585,16 @@ class BootScene extends Phaser.Scene {
             vx.restore();
 
             // track name subtle watermark
-            vx.fillStyle = synth ? 'rgba(255,42,109,0.7)' : halloween ? 'rgba(200,80,0,0.5)' : soccer ? 'rgba(0,80,0,0.35)' : asian ? 'rgba(160,30,30,0.45)' : 'rgba(0,0,0,0.25)'; vx.font = 'bold 13px monospace';
+            vx.fillStyle = synth ? 'rgba(255,42,109,0.7)' : halloween ? 'rgba(200,80,0,0.5)' : soccer ? 'rgba(0,80,0,0.35)' : asian ? 'rgba(160,30,30,0.45)' : desk ? 'rgba(40,30,20,0.4)' : 'rgba(0,0,0,0.25)'; vx.font = 'bold 13px monospace';
             vx.textAlign = 'left'; vx.fillText(t.name, 8, TH - 8);
 
             this.textures.addCanvas('tv_' + idx, vc);
 
             // ── collision map ──
-            const cc = document.createElement('canvas'); cc.width = TW; cc.height = TH;
+            const cc = document.createElement('canvas');
+            cc.width = Math.round(TW / cs); cc.height = Math.round(TH / cs);
             const cx = cc.getContext('2d');
+            if (cs !== 1) cx.scale(1 / cs, 1 / cs);
             cx.fillStyle = '#804000'; cx.fillRect(0, 0, TW, TH);
             cx.strokeStyle = '#00ff00'; cx.lineWidth = t.rw;
             cx.lineCap = 'round'; cx.lineJoin = 'round';
@@ -1107,7 +1602,8 @@ class BootScene extends Phaser.Scene {
             t.mud.forEach(m => {
                 cx.fillStyle = '#0000ff'; cx.beginPath(); cx.arc(m.x, m.y, m.r, 0, Math.PI * 2); cx.fill();
             });
-            t.cpx = cx.getImageData(0, 0, TW, TH).data;
+            t.cpx = cx.getImageData(0, 0, cc.width, cc.height).data;
+            t.cpxW = cc.width; t.cpxH = cc.height;
 
             // ── checkpoints at 1/4, 2/4, 3/4, 0 ──
             t.cks = [];
@@ -1196,7 +1692,7 @@ class TitleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.tweens.add({ targets: pt, alpha: 0.2, duration: 600, yoyo: true, repeat: -1 });
 
-        const mapHint = this.add.text(GW / 2, 665, 'Triple-tap 1–9 to jump to a track  (e.g. 999 = NEON DRIVE)', {
+        const mapHint = this.add.text(GW / 2, 665, 'Triple-tap 0–9 to jump to a track  (0 = DESK CHAOS, 9 = NEON DRIVE)', {
             fontSize: '14px', fontFamily: 'monospace', color: '#555',
         }).setOrigin(0.5);
 
@@ -1216,7 +1712,7 @@ class TitleScene extends Phaser.Scene {
 
         this.input.keyboard.on('keydown', (ev) => {
             const d = ev.key;
-            if (d >= '1' && d <= '9') {
+            if (d >= '0' && d <= '9') {
                 if (digitBuf.length > 0 && d !== digitBuf[0]) {
                     // different digit — reset
                     digitBuf = d;
@@ -1226,8 +1722,8 @@ class TitleScene extends Phaser.Scene {
                 mapSelect.setText('TRACK SELECT: ' + digitBuf);
                 if (digitTimer) clearTimeout(digitTimer);
                 if (digitBuf.length === 3) {
-                    // confirmed — jump to that track
-                    const trackNum = parseInt(d);
+                    // confirmed — jump to that track (0 maps to track 10)
+                    const trackNum = d === '0' ? 10 : parseInt(d);
                     gs = resetGameState();
                     gs.raceNum = trackNum - 1;
                     flushDigits();
@@ -1354,7 +1850,8 @@ class RaceScene extends Phaser.Scene {
         this.isBig = TW > GW || TH > GH;
 
         // track background (positioned so top-left = world origin)
-        this.add.image(TW / 2, TH / 2, 'tv_' + ti);
+        const bg = this.add.image(TW / 2, TH / 2, 'tv_' + ti);
+        if (this.td.cpxScale && this.td.cpxScale !== 1) bg.setDisplaySize(TW, TH);
 
         // camera bounds & follow for multi-screen tracks
         this.cameras.main.setBounds(0, 0, TW, TH);
@@ -1449,6 +1946,39 @@ class RaceScene extends Phaser.Scene {
 
         // particles
         this.dust = [];
+
+        // Desk-track runtime: per-race cooldowns for boosts/ramps, plus
+        // a graphics overlay on top of the player when inside a tunnel.
+        this.boostState = (this.td.boosts || []).map(() => ({ cd: 0 }));
+        this.rampState  = (this.td.ramps  || []).map(() => ({ cd: 0 }));
+        this.tunnelOverlays = [];
+        if (this.td.tunnels && this.td.tunnels.length) {
+            this.td.tunnels.forEach(tu => {
+                const g = this.add.graphics().setDepth(15);
+                g.fillStyle(0x000000, 0.55);
+                const halfW = this.td.rw / 2 + 8;
+                const pts = [];
+                const wp = this.td.wp;
+                for (let i = 0; i <= tu.len; i++) {
+                    const pp = wp[(tu.startI + i) % wp.length];
+                    const nxt = wp[(tu.startI + i + 1) % wp.length];
+                    const a = Math.atan2(nxt.y - pp.y, nxt.x - pp.x) + Math.PI / 2;
+                    pts.push({ ux: pp.x + Math.cos(a) * halfW, uy: pp.y + Math.sin(a) * halfW,
+                               dx: pp.x - Math.cos(a) * halfW, dy: pp.y - Math.sin(a) * halfW });
+                }
+                g.beginPath();
+                g.moveTo(pts[0].ux, pts[0].uy);
+                for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].ux, pts[i].uy);
+                for (let i = pts.length - 1; i >= 0; i--) g.lineTo(pts[i].dx, pts[i].dy);
+                g.closePath(); g.fillPath();
+                // subtle horizontal "beam" highlights inside
+                g.fillStyle(0xfff0a0, 0.08);
+                for (let i = 2; i < pts.length - 2; i += 3) {
+                    g.fillCircle((pts[i].ux + pts[i].dx) / 2, (pts[i].uy + pts[i].dy) / 2, halfW * 0.6);
+                }
+                this.tunnelOverlays.push(g);
+            });
+        }
 
         // HUD
         this.buildHUD();
@@ -1558,6 +2088,7 @@ class RaceScene extends Phaser.Scene {
         this.updateDust(dt);
         if (this.soccerBalls.length > 0 || this.subbuteo) this.updateSoccerProps(dt);
         if (this.ghost) this.updateGhost(dt, delta);
+        if (this.td.boosts && this.td.boosts.length) this.updateDeskHazards(dt);
         this.calcPositions();
         this.drawHUD();
 
@@ -1704,10 +2235,71 @@ class RaceScene extends Phaser.Scene {
         }
     }
 
+    updateDeskHazards(dt) {
+        // decrement cooldowns
+        this.boostState.forEach(s => { if (s.cd > 0) s.cd -= dt; });
+        this.rampState.forEach(s => { if (s.cd > 0) s.cd -= dt; });
+
+        const BOOST_R = 45, RAMP_R = 45;
+        const BOOST_CD = 30, RAMP_CD = 60;
+
+        this.trucks.forEach(t => {
+            if (t.fin || t.frozenTimer > 0) return;
+            // Boost chevrons (">>" markers on the road)
+            this.td.boosts.forEach((b, i) => {
+                const st = this.boostState[i];
+                if (st.cd > 0) return;
+                if (Math.hypot(t.x - b.x, t.y - b.y) < BOOST_R) {
+                    // punch velocity along the boost direction
+                    const kick = 3.2;
+                    t.vx += Math.cos(b.a) * kick;
+                    t.vy += Math.sin(b.a) * kick;
+                    // temporarily lift the speed cap via nitro-like flag
+                    t.nAct = true;
+                    t.nTmr = Math.max(t.nTmr, 35);
+                    st.cd = BOOST_CD;
+                    if (t.isP) {
+                        this.cameras.main.flash(90, 255, 230, 80, true);
+                        SFX.nitro();
+                    }
+                }
+            });
+            // Ramps — burst forward + sprite "airtime" scale bump
+            this.td.ramps.forEach((r, i) => {
+                const st = this.rampState[i];
+                if (st.cd > 0) return;
+                if (Math.hypot(t.x - r.x, t.y - r.y) < RAMP_R) {
+                    const kick = 2.4;
+                    t.vx += Math.cos(r.a) * kick;
+                    t.vy += Math.sin(r.a) * kick;
+                    t.nAct = true;
+                    t.nTmr = Math.max(t.nTmr, 50);
+                    st.cd = RAMP_CD;
+                    // fake airtime: temporarily upscale the sprite
+                    if (t.spr && !t.spr._rampTween) {
+                        const base = t.spr.scaleX;
+                        t.spr._rampTween = true;
+                        this.tweens.add({
+                            targets: t.spr,
+                            scaleX: base * 1.6, scaleY: base * 1.6,
+                            duration: 180, yoyo: true,
+                            onComplete: () => { t.spr._rampTween = false; },
+                        });
+                    }
+                    if (t.isP) {
+                        this.cameras.main.shake(140, 0.006);
+                        SFX.nitro();
+                    }
+                }
+            });
+        });
+    }
+
     terrain(x, y) {
         const px = this.td.cpx;
-        const TW = this.td.W, TH = this.td.H;
-        const ix = Math.floor(x), iy = Math.floor(y);
+        const s = this.td.cpxScale || 1;
+        const TW = this.td.cpxW || this.td.W, TH = this.td.cpxH || this.td.H;
+        const ix = Math.floor(x / s), iy = Math.floor(y / s);
         if (ix < 0 || ix >= TW || iy < 0 || iy >= TH) return 'offroad';
         const i = (iy * TW + ix) * 4;
         if (px[i + 1] > 200 && px[i] < 100 && px[i + 2] < 100) return 'road';
@@ -1734,7 +2326,8 @@ class RaceScene extends Phaser.Scene {
             t.nxtCk++;
             if (t.nxtCk >= this.td.cks.length) {
                 t.nxtCk = 0; t.laps++;
-                if (t.laps >= TOTAL_LAPS) {
+                const lapGoal = this.td.laps || TOTAL_LAPS;
+                if (t.laps >= lapGoal) {
                     t.fin = true; t.finPos = this.finOrder.length;
                     this.finOrder.push(t);
                     if (t.isP) {
@@ -2136,7 +2729,7 @@ class RaceScene extends Phaser.Scene {
         const pl = ['1st', '2nd', '3rd', '4th'];
         const t0 = this.trucks[0];
         this.hPos.setText('POS: ' + pl[pi]);
-        this.hLap.setText('LAP: ' + Math.min(t0.laps + 1, TOTAL_LAPS) + '/' + TOTAL_LAPS);
+        this.hLap.setText('LAP: ' + Math.min(t0.laps + 1, (this.td.laps || TOTAL_LAPS)) + '/' + (this.td.laps || TOTAL_LAPS));
         this.hMon.setText('$' + gs.money.toLocaleString());
         this.hNit.setText('NITRO: ' + t0.nitros + (t0.nAct ? ' 🔥' : ''));
         // speed meter
