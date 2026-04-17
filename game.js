@@ -39,7 +39,12 @@ const TRACK_MUSIC = [
     'music/mfcc-sports-football-soccer-music-414731.mp3',
     'music/mfcc-speed-racing-action-music-115039.mp3',
     'music/mfcc-halloween-background-music-428574.mp3',
+    'music/mfcc-speed-action-racing-music-120442.mp3', // synthwave reuse
 ];
+
+// Synthwave track is larger than screen — world dimensions
+const SW_W = 2048;
+const SW_H = 1536;
 
 const TRUCK_SPRITES = {
     player: 'car_copilot',
@@ -143,6 +148,24 @@ const TRACKS = [
         ],
         rw: ROAD_W - 2,
         mud: [{x:550,y:300,r:28},{x:160,y:540,r:24}],
+    },
+    {
+        // ── SYNTHWAVE — giant multi-screen track ──
+        name: 'NEON DRIVE',
+        synth: true,
+        W: SW_W, H: SW_H,
+        rw: ROAD_W + 4,
+        cp: [
+            {x:1024,y:1420}, {x:1350,y:1440}, {x:1700,y:1380}, {x:1920,y:1220},
+            {x:1960,y:1000}, {x:1820,y:820},  {x:1560,y:780},  {x:1320,y:900},
+            {x:1080,y:820},  {x:900,y:620},   {x:1100,y:460},  {x:1380,y:380},
+            {x:1680,y:300},  {x:1900,y:180},  {x:1700,y:90},   {x:1350,y:120},
+            {x:1020,y:200},  {x:720,y:160},   {x:420,y:110},   {x:180,y:230},
+            {x:100,y:440},   {x:220,y:640},   {x:440,y:720},   {x:620,y:900},
+            {x:480,y:1080},  {x:260,y:1180},  {x:130,y:1340},  {x:300,y:1460},
+            {x:560,y:1480},  {x:780,y:1440},
+        ],
+        mud: [{x:1500,y:900,r:30},{x:400,y:500,r:28},{x:1700,y:1100,r:26}],
     },
 ];
 
@@ -290,7 +313,102 @@ const SFX = (() => {
         setTimeout(() => { try { engineOsc.stop(); } catch(e){} engineOsc = null; engineGain = null; }, 300);
     }
 
-    return { countdownBeep, nitro, pickupMoney, pickupNitro, engineStart, engineUpdate, engineStop };
+    // ramp launch sound: quick rising whoosh + thud on landing
+    function rampJump() {
+        const c = ac();
+        // whoosh sweep up
+        const o = c.createOscillator();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(120, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(600, c.currentTime + 0.18);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.25, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.25);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.26);
+        // noise burst for texture
+        const buf = c.createBuffer(1, c.sampleRate * 0.15, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+        const src = c.createBufferSource(); src.buffer = buf;
+        const ng = c.createGain(); ng.gain.setValueAtTime(0.1, c.currentTime);
+        ng.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.15);
+        src.connect(ng); ng.connect(c.destination); src.start();
+    }
+
+    // ball kick: short punchy thud
+    function ballKick() {
+        const c = ac();
+        const o = c.createOscillator();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(220, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(80, c.currentTime + 0.12);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.3, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.15);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.16);
+        // short noise pop
+        const buf = c.createBuffer(1, c.sampleRate * 0.06, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const hg = c.createGain(); hg.gain.setValueAtTime(0.15, c.currentTime);
+        hg.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.06);
+        src.connect(hg); hg.connect(c.destination); src.start();
+    }
+
+    // subbuteo wobble: hollow plastic clack
+    function subbuteoHit() {
+        const c = ac();
+        // hollow plastic knock
+        const o = c.createOscillator();
+        o.type = 'square';
+        o.frequency.setValueAtTime(800, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(200, c.currentTime + 0.08);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.2, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.12);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.13);
+        // secondary resonance
+        const o2 = c.createOscillator();
+        o2.type = 'triangle';
+        o2.frequency.value = 350;
+        const g2 = c.createGain();
+        g2.gain.setValueAtTime(0.1, c.currentTime + 0.02);
+        g2.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.18);
+        o2.connect(g2); g2.connect(c.destination);
+        o2.start(c.currentTime + 0.02); o2.stop(c.currentTime + 0.19);
+    }
+
+    // ghost freeze: eerie descending wail
+    function ghostFreeze() {
+        const c = ac();
+        // descending wail
+        const o = c.createOscillator();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(900, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(200, c.currentTime + 0.5);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.25, c.currentTime);
+        g.gain.linearRampToValueAtTime(0.15, c.currentTime + 0.3);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.6);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.65);
+        // breathy overlay
+        const o2 = c.createOscillator();
+        o2.type = 'triangle';
+        o2.frequency.setValueAtTime(450, c.currentTime);
+        o2.frequency.exponentialRampToValueAtTime(120, c.currentTime + 0.4);
+        const g2 = c.createGain();
+        g2.gain.setValueAtTime(0.12, c.currentTime);
+        g2.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.5);
+        o2.connect(g2); g2.connect(c.destination);
+        o2.start(); o2.stop(c.currentTime + 0.55);
+    }
+
+    return { countdownBeep, nitro, pickupMoney, pickupNitro, engineStart, engineUpdate, engineStop, rampJump, ballKick, subbuteoHit, ghostFreeze };
 })();
 
 // ── BOOT SCENE ──────────────────────────────────────────────
@@ -384,18 +502,142 @@ class BootScene extends Phaser.Scene {
 
         TRACKS.forEach((t, idx) => {
             seed = idx * 7919 + 42;
+            // per-track world dimensions (default to screen size)
+            t.W = t.W || GW;
+            t.H = t.H || GH;
+            const TW = t.W, TH = t.H;
             const wp = spline(t.cp, 20);
             t.wp = wp;
 
             const halloween = idx === 7;
             const soccer    = idx === 5;
             const asian     = idx === 2;
+            const synth     = !!t.synth;
 
             // ── visual ──
-            const vc = document.createElement('canvas'); vc.width = GW; vc.height = GH;
+            const vc = document.createElement('canvas'); vc.width = TW; vc.height = TH;
             const vx = vc.getContext('2d');
 
-            if (halloween) {
+            if (synth) {
+                // ── SYNTHWAVE: top-down neon grid world ──
+                // base: deep purple/black
+                vx.fillStyle = '#0a0020'; vx.fillRect(0, 0, TW, TH);
+                // subtle radial vignette gradients at corners for mood
+                for (let i = 0; i < 6; i++) {
+                    const rg = vx.createRadialGradient(srand()*TW, srand()*TH, 0, srand()*TW, srand()*TH, 300);
+                    rg.addColorStop(0, `rgba(${120+(srand()*60|0)},0,${160+(srand()*95|0)},0.35)`);
+                    rg.addColorStop(1, 'rgba(0,0,0,0)');
+                    vx.fillStyle = rg; vx.fillRect(0, 0, TW, TH);
+                }
+                // neon grid — cyan
+                vx.strokeStyle = 'rgba(42,240,255,0.35)'; vx.lineWidth = 1;
+                const GRID = 48;
+                for (let gx = 0; gx <= TW; gx += GRID) {
+                    vx.beginPath(); vx.moveTo(gx, 0); vx.lineTo(gx, TH); vx.stroke();
+                }
+                for (let gy = 0; gy <= TH; gy += GRID) {
+                    vx.beginPath(); vx.moveTo(0, gy); vx.lineTo(TW, gy); vx.stroke();
+                }
+                // every 4th line brighter magenta
+                vx.strokeStyle = 'rgba(255,42,109,0.55)'; vx.lineWidth = 1.5;
+                for (let gx = 0; gx <= TW; gx += GRID * 4) {
+                    vx.beginPath(); vx.moveTo(gx, 0); vx.lineTo(gx, TH); vx.stroke();
+                }
+                for (let gy = 0; gy <= TH; gy += GRID * 4) {
+                    vx.beginPath(); vx.moveTo(0, gy); vx.lineTo(TW, gy); vx.stroke();
+                }
+                // scattered stars / sparkles
+                for (let i = 0; i < 500; i++) {
+                    const sx2 = srand()*TW|0, sy2 = srand()*TH|0;
+                    vx.fillStyle = `rgba(${200+(srand()*55|0)},${200+(srand()*55|0)},255,${0.3+srand()*0.5})`;
+                    vx.fillRect(sx2, sy2, 1, 1);
+                }
+                // ── neon sun emblem (top-down "stylized") ──
+                const sunCx = TW * 0.3, sunCy = TH * 0.2, sunR = 120;
+                const sunG = vx.createRadialGradient(sunCx, sunCy, 0, sunCx, sunCy, sunR);
+                sunG.addColorStop(0, 'rgba(255,233,74,0.95)');
+                sunG.addColorStop(0.4, 'rgba(255,106,154,0.8)');
+                sunG.addColorStop(1, 'rgba(255,42,109,0.1)');
+                vx.fillStyle = sunG;
+                vx.beginPath(); vx.arc(sunCx, sunCy, sunR, 0, Math.PI * 2); vx.fill();
+                // horizontal slits
+                vx.fillStyle = '#0a0020';
+                for (let i = 0; i < 7; i++) {
+                    vx.fillRect(sunCx - sunR, sunCy + 10 + i * 14, sunR * 2, 2.5 + i * 0.6);
+                }
+                // second smaller sun
+                const sun2x = TW * 0.75, sun2y = TH * 0.75, sun2R = 80;
+                const sun2G = vx.createRadialGradient(sun2x, sun2y, 0, sun2x, sun2y, sun2R);
+                sun2G.addColorStop(0, 'rgba(42,240,255,0.95)');
+                sun2G.addColorStop(0.5, 'rgba(130,80,255,0.6)');
+                sun2G.addColorStop(1, 'rgba(80,40,200,0.05)');
+                vx.fillStyle = sun2G;
+                vx.beginPath(); vx.arc(sun2x, sun2y, sun2R, 0, Math.PI * 2); vx.fill();
+
+                // palm tree silhouettes scattered around
+                const drawPalm = (px, py, h) => {
+                    // trunk
+                    vx.strokeStyle = '#0a0010'; vx.lineWidth = 4;
+                    vx.beginPath(); vx.moveTo(px, py); vx.lineTo(px + 2, py - h); vx.stroke();
+                    // fronds
+                    vx.strokeStyle = '#0a0010'; vx.lineWidth = 3;
+                    for (let f = 0; f < 6; f++) {
+                        const fa = (f / 6) * Math.PI + Math.PI + srand() * 0.3;
+                        const fx = px + 2 + Math.cos(fa) * h * 0.45;
+                        const fy = py - h + Math.sin(fa) * h * 0.3;
+                        vx.beginPath(); vx.moveTo(px + 2, py - h); vx.quadraticCurveTo((px + fx)/2, py - h - 12, fx, fy); vx.stroke();
+                    }
+                    // neon outline on trunk
+                    vx.strokeStyle = '#ff2a6d'; vx.lineWidth = 1;
+                    vx.beginPath(); vx.moveTo(px - 1, py); vx.lineTo(px + 1, py - h); vx.stroke();
+                };
+                for (let i = 0; i < 28; i++) {
+                    const px = srand() * TW, py = srand() * TH;
+                    // skip if too close to track center (simple approximation)
+                    drawPalm(px, py, 35 + srand() * 35);
+                }
+                // neon triangles / pyramids decor
+                for (let i = 0; i < 20; i++) {
+                    const tx = srand() * TW, ty = srand() * TH, tr = 12 + srand() * 18;
+                    const col = srand() > 0.5 ? '#2af0ff' : '#ff2a6d';
+                    vx.strokeStyle = col; vx.lineWidth = 1.5;
+                    vx.beginPath();
+                    vx.moveTo(tx, ty - tr);
+                    vx.lineTo(tx - tr, ty + tr);
+                    vx.lineTo(tx + tr, ty + tr);
+                    vx.closePath(); vx.stroke();
+                }
+                // road shoulder — magenta glow
+                vx.strokeStyle = '#ff2a6d'; vx.lineWidth = t.rw + 16;
+                vx.lineCap = 'round'; vx.lineJoin = 'round';
+                drawPath(vx, wp); vx.stroke();
+                // inner shoulder — cyan glow
+                vx.strokeStyle = '#2af0ff'; vx.lineWidth = t.rw + 6;
+                drawPath(vx, wp); vx.stroke();
+                // road surface — near-black
+                vx.strokeStyle = '#0a0618'; vx.lineWidth = t.rw;
+                drawPath(vx, wp); vx.stroke();
+                // inner road highlight
+                vx.strokeStyle = '#1a0a2a'; vx.lineWidth = t.rw - 14;
+                drawPath(vx, wp); vx.stroke();
+                // centre dashes — bright cyan
+                vx.strokeStyle = '#2af0ff'; vx.lineWidth = 2; vx.setLineDash([10, 16]);
+                drawPath(vx, wp); vx.stroke(); vx.setLineDash([]);
+                // edge neon stripes (thin)
+                vx.strokeStyle = 'rgba(255,42,109,0.9)'; vx.lineWidth = 1.5;
+                vx.setLineDash([20, 6]); drawPath(vx, wp); vx.stroke(); vx.setLineDash([]);
+                // mud as neon "glitch" pools
+                t.mud.forEach(m => {
+                    const g = vx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r);
+                    g.addColorStop(0, 'rgba(170,0,255,0.9)'); g.addColorStop(1, 'rgba(80,0,160,0.1)');
+                    vx.fillStyle = g; vx.beginPath(); vx.arc(m.x, m.y, m.r, 0, Math.PI * 2); vx.fill();
+                    // glitch scanlines inside
+                    vx.fillStyle = 'rgba(42,240,255,0.4)';
+                    for (let s = -m.r; s < m.r; s += 4) {
+                        vx.fillRect(m.x - m.r, m.y + s, m.r * 2, 1);
+                    }
+                });
+            } else if (halloween) {
                 // deep dark purple-black night sky
                 vx.fillStyle = '#0d0010'; vx.fillRect(0, 0, GW, GH);
                 // moody purple/dark patches
@@ -529,54 +771,53 @@ class BootScene extends Phaser.Scene {
                     vx.fillStyle = hl;
                     vx.beginPath(); vx.arc(bx, by, r, 0, Math.PI*2); vx.fill();
                 };
-                for (let i = 0; i < 10; i++) drawBall(srand()*GW, srand()*GH, 5 + srand()*5);
+                // store ball positions for runtime collision (drawn dynamically, not on static canvas)
+                t.soccerBalls = [];
+                for (let i = 0; i < 10; i++) {
+                    const bx2 = srand()*GW, by2 = srand()*GH, br = 5 + srand()*5;
+                    t.soccerBalls.push({ x: bx2, y: by2, r: br });
+                }
 
-                // subbuteo player
+                // subbuteo player — store position for runtime collision (drawn dynamically, not on static canvas)
                 const spx = 100 + srand() * (GW - 200), spy = 100 + srand() * (GH - 200);
-                // dome base
-                vx.fillStyle = '#1a1a1a';
-                vx.beginPath(); vx.ellipse(spx, spy + 12, 12, 5, 0, 0, Math.PI * 2); vx.fill();
-                vx.fillStyle = '#222';
-                vx.beginPath(); vx.ellipse(spx, spy + 10, 11, 4, 0, 0, Math.PI * 2); vx.fill();
-                // rod / peg
-                vx.fillStyle = '#333';
-                vx.fillRect(spx - 1.5, spy - 2, 3, 14);
-                // body (blue shirt)
-                vx.fillStyle = '#1a4fc4';
-                vx.fillRect(spx - 5, spy - 10, 10, 10);
-                // white shorts
-                vx.fillStyle = '#fff';
-                vx.fillRect(spx - 4, spy, 8, 4);
-                // legs
-                vx.fillStyle = '#e8c090';
-                vx.fillRect(spx - 3, spy + 4, 2.5, 5);
-                vx.fillRect(spx + 0.5, spy + 4, 2.5, 5);
-                // boots
-                vx.fillStyle = '#111';
-                vx.fillRect(spx - 3, spy + 9, 3, 2);
-                vx.fillRect(spx + 0.5, spy + 9, 3, 2);
-                // head
-                vx.fillStyle = '#e8c090';
-                vx.beginPath(); vx.arc(spx, spy - 13, 4, 0, Math.PI * 2); vx.fill();
-                // hair
-                vx.fillStyle = '#3a2a1a';
-                vx.beginPath(); vx.arc(spx, spy - 14.5, 3.5, Math.PI, Math.PI * 2); vx.fill();
-                // arms
-                vx.strokeStyle = '#1a4fc4'; vx.lineWidth = 2;
-                vx.beginPath(); vx.moveTo(spx - 5, spy - 8); vx.lineTo(spx - 8, spy - 3); vx.stroke();
-                vx.beginPath(); vx.moveTo(spx + 5, spy - 8); vx.lineTo(spx + 8, spy - 3); vx.stroke();
+                t.subbuteo = { x: spx, y: spy };
 
-                // Rangers vs Celtic match ticket — centered and visible
+                // Rangers vs Celtic match ticket — angled as a RAMP
                 srand(); srand(); // consume random values to keep seed in sync
-                const tkx = GW / 2 - 60, tky = GH / 2 - 26;
+                const tkx = GW / 2 - 60, tky = GH / 2 - 10;
+                const rampAngle = -10 * Math.PI / 180; // ~10 degrees tilted up from left
+                // store ramp zone for collision detection
+                t.ramp = { x: tkx + 60, y: tky + 26, hw: 65, hh: 30, angle: rampAngle };
                 vx.save();
                 vx.translate(tkx, tky);
-                vx.rotate(-0.08 + srand() * 0.16);
+                // shadow underneath the ramp to show it's elevated
+                vx.save();
+                vx.translate(6, 10);
+                vx.rotate(rampAngle * 0.3); // shadow less tilted (on ground)
+                vx.fillStyle = 'rgba(0,0,0,0.45)';
+                vx.beginPath();
+                vx.moveTo(0, 52); vx.lineTo(120, 52);
+                vx.lineTo(115, 56); vx.lineTo(5, 58);
+                vx.closePath(); vx.fill();
+                // broader soft shadow
+                vx.fillStyle = 'rgba(0,0,0,0.18)';
+                vx.beginPath();
+                vx.ellipse(60, 58, 65, 10, 0, 0, Math.PI * 2);
+                vx.fill();
+                vx.restore();
+                // tilt the ticket like a ramp — left side on the ground
+                vx.rotate(rampAngle);
                 // ticket background
                 const tg = vx.createLinearGradient(0, 0, 120, 0);
                 tg.addColorStop(0, '#f5f0e0'); tg.addColorStop(1, '#ece5cc');
                 vx.fillStyle = tg;
                 vx.fillRect(0, 0, 120, 52);
+                // thin edge strip to show thickness/ramp depth
+                vx.fillStyle = '#c8b888';
+                vx.beginPath();
+                vx.moveTo(0, 52); vx.lineTo(120, 52);
+                vx.lineTo(120, 55); vx.lineTo(0, 54);
+                vx.closePath(); vx.fill();
                 // ticket border
                 vx.strokeStyle = '#8a7a5a'; vx.lineWidth = 1.2;
                 vx.strokeRect(0, 0, 120, 52);
@@ -701,6 +942,99 @@ class BootScene extends Phaser.Scene {
                     vx.beginPath(); vx.arc(m.x+srand()*m.r*0.4, m.y+srand()*m.r*0.4, 3, 0, Math.PI*2); vx.fill();
                 });
 
+                // ── takeaway rice container with chopsticks (3× size) ──
+                const rcx = GW / 2, rcy = GH / 2 - 40;
+                vx.save(); vx.translate(rcx, rcy); vx.scale(3, 3); vx.rotate(-0.1);
+                // container body — white
+                const cg = vx.createLinearGradient(-16, -10, 16, -10);
+                cg.addColorStop(0, '#e8e8e8'); cg.addColorStop(0.5, '#ffffff'); cg.addColorStop(1, '#e8e8e8');
+                vx.fillStyle = cg;
+                vx.beginPath();
+                vx.moveTo(-14, 20); vx.lineTo(-18, -10); vx.lineTo(18, -10); vx.lineTo(14, 20);
+                vx.closePath(); vx.fill();
+                // container outline
+                vx.strokeStyle = '#bbb'; vx.lineWidth = 0.6;
+                vx.beginPath();
+                vx.moveTo(-14, 20); vx.lineTo(-18, -10); vx.lineTo(18, -10); vx.lineTo(14, 20);
+                vx.closePath(); vx.stroke();
+                // wire handle
+                vx.strokeStyle = '#888'; vx.lineWidth = 1.2;
+                vx.beginPath(); vx.arc(0, -10, 14, Math.PI + 0.3, -0.3); vx.stroke();
+                // red sign — "Lee's Takeaway"
+                vx.fillStyle = '#cc1111';
+                vx.fillRect(-13, -4, 26, 16);
+                vx.fillStyle = '#fff'; vx.font = 'bold 5px sans-serif'; vx.textAlign = 'center';
+                vx.fillText("LEE'S", 0, 3);
+                vx.fillText("TAKEAWAY", 0, 9);
+                // rice peeking out top
+                for (let i = 0; i < 7; i++) {
+                    vx.fillStyle = '#f5f0e0';
+                    vx.beginPath(); vx.arc(-10 + i * 3.5, -11 - Math.sin(i * 1.2) * 2, 2.5, 0, Math.PI * 2); vx.fill();
+                }
+                // chopsticks sticking out
+                vx.strokeStyle = '#c8a050'; vx.lineWidth = 2; vx.lineCap = 'round';
+                vx.beginPath(); vx.moveTo(-2, -12); vx.lineTo(-10, -36); vx.stroke();
+                vx.beginPath(); vx.moveTo(3, -12); vx.lineTo(8, -34); vx.stroke();
+                // chopstick tips
+                vx.strokeStyle = '#e8c878'; vx.lineWidth = 1.5;
+                vx.beginPath(); vx.moveTo(-10, -36); vx.lineTo(-11, -39); vx.stroke();
+                vx.beginPath(); vx.moveTo(8, -34); vx.lineTo(9, -37); vx.stroke();
+                vx.restore();
+
+                // ── opened fortune cookie with message (2× size) ──
+                const fcx = 820, fcy = 520;
+                vx.save(); vx.translate(fcx, fcy); vx.scale(2, 2); vx.rotate(0.15);
+                // left half of cracked cookie
+                vx.fillStyle = '#e8b84c';
+                vx.beginPath();
+                vx.moveTo(-18, 4); vx.quadraticCurveTo(-22, -8, -10, -12);
+                vx.quadraticCurveTo(-2, -14, 0, -4);
+                vx.quadraticCurveTo(-4, 2, -18, 4);
+                vx.closePath(); vx.fill();
+                // left half shadow
+                vx.fillStyle = '#d0a030';
+                vx.beginPath();
+                vx.moveTo(-16, 2); vx.quadraticCurveTo(-18, -4, -10, -8);
+                vx.quadraticCurveTo(-6, -9, -3, -3);
+                vx.quadraticCurveTo(-6, 1, -16, 2);
+                vx.closePath(); vx.fill();
+                // right half of cracked cookie (slightly separated)
+                vx.fillStyle = '#e8b84c';
+                vx.beginPath();
+                vx.moveTo(18, 4); vx.quadraticCurveTo(22, -8, 10, -12);
+                vx.quadraticCurveTo(2, -14, 0, -4);
+                vx.quadraticCurveTo(4, 2, 18, 4);
+                vx.closePath(); vx.fill();
+                // right half highlight
+                vx.fillStyle = '#f0c860';
+                vx.beginPath();
+                vx.moveTo(14, 0); vx.quadraticCurveTo(16, -6, 10, -9);
+                vx.quadraticCurveTo(6, -10, 3, -4);
+                vx.quadraticCurveTo(5, -1, 14, 0);
+                vx.closePath(); vx.fill();
+                // fortune paper strip poking out
+                vx.save(); vx.rotate(-0.08);
+                vx.fillStyle = '#fff';
+                vx.beginPath();
+                vx.moveTo(-28, 2); vx.lineTo(28, -2); vx.lineTo(29, 4); vx.lineTo(-27, 8);
+                vx.closePath(); vx.fill();
+                // paper shadow
+                vx.fillStyle = 'rgba(0,0,0,0.06)';
+                vx.fillRect(-26, 4, 54, 3);
+                // fortune text
+                vx.fillStyle = '#cc1111'; vx.font = 'bold 4.5px serif'; vx.textAlign = 'center';
+                vx.fillText("If you're not first", 0, 3);
+                vx.fillText("you're last", 0, 8);
+                vx.restore();
+                // crumbs
+                vx.fillStyle = '#d8a840';
+                for (let i = 0; i < 5; i++) {
+                    vx.beginPath();
+                    vx.arc(-8 + srand() * 16, 6 + srand() * 8, 0.8 + srand() * 1.2, 0, Math.PI * 2);
+                    vx.fill();
+                }
+                vx.restore();
+
             } else {
                 // grass background with subtle patches
                 vx.fillStyle = '#4a8a3a'; vx.fillRect(0, 0, GW, GH);
@@ -735,14 +1069,16 @@ class BootScene extends Phaser.Scene {
             const sa = Math.atan2(s1.y - s0.y, s1.x - s0.x);
             const pa = sa + Math.PI / 2;
             vx.save();
-            vx.strokeStyle = halloween ? '#ff6600' : soccer ? '#fff' : asian ? '#cc2020' : '#fff'; vx.lineWidth = 5;
+            vx.strokeStyle = synth ? '#2af0ff' : halloween ? '#ff6600' : soccer ? '#fff' : asian ? '#cc2020' : '#fff'; vx.lineWidth = 5;
             vx.beginPath();
             vx.moveTo(s0.x + Math.cos(pa) * t.rw / 2, s0.y + Math.sin(pa) * t.rw / 2);
             vx.lineTo(s0.x - Math.cos(pa) * t.rw / 2, s0.y - Math.sin(pa) * t.rw / 2);
             vx.stroke();
             // checkerboard
             for (let i = -3; i <= 3; i++) {
-                vx.fillStyle = halloween
+                vx.fillStyle = synth
+                    ? (i % 2 === 0 ? '#ff2a6d' : '#2af0ff')
+                    : halloween
                     ? (i % 2 === 0 ? '#c85000' : '#300030')
                     : soccer
                     ? (i % 2 === 0 ? '#fff' : '#1a6e1a')
@@ -756,22 +1092,22 @@ class BootScene extends Phaser.Scene {
             vx.restore();
 
             // track name subtle watermark
-            vx.fillStyle = halloween ? 'rgba(200,80,0,0.5)' : soccer ? 'rgba(0,80,0,0.35)' : asian ? 'rgba(160,30,30,0.45)' : 'rgba(0,0,0,0.25)'; vx.font = 'bold 13px monospace';
-            vx.textAlign = 'left'; vx.fillText(t.name, 8, GH - 8);
+            vx.fillStyle = synth ? 'rgba(255,42,109,0.7)' : halloween ? 'rgba(200,80,0,0.5)' : soccer ? 'rgba(0,80,0,0.35)' : asian ? 'rgba(160,30,30,0.45)' : 'rgba(0,0,0,0.25)'; vx.font = 'bold 13px monospace';
+            vx.textAlign = 'left'; vx.fillText(t.name, 8, TH - 8);
 
             this.textures.addCanvas('tv_' + idx, vc);
 
             // ── collision map ──
-            const cc = document.createElement('canvas'); cc.width = GW; cc.height = GH;
+            const cc = document.createElement('canvas'); cc.width = TW; cc.height = TH;
             const cx = cc.getContext('2d');
-            cx.fillStyle = '#804000'; cx.fillRect(0, 0, GW, GH);
+            cx.fillStyle = '#804000'; cx.fillRect(0, 0, TW, TH);
             cx.strokeStyle = '#00ff00'; cx.lineWidth = t.rw;
             cx.lineCap = 'round'; cx.lineJoin = 'round';
             drawPath(cx, wp); cx.stroke();
             t.mud.forEach(m => {
                 cx.fillStyle = '#0000ff'; cx.beginPath(); cx.arc(m.x, m.y, m.r, 0, Math.PI * 2); cx.fill();
             });
-            t.cpx = cx.getImageData(0, 0, GW, GH).data;
+            t.cpx = cx.getImageData(0, 0, TW, TH).data;
 
             // ── checkpoints at 1/4, 2/4, 3/4, 0 ──
             t.cks = [];
@@ -823,7 +1159,11 @@ class TitleScene extends Phaser.Scene {
         // decorative track preview in background
         const tidx = Math.floor(Math.random() * TRACKS.length);
         if (this.textures.exists('tv_' + tidx)) {
-            this.add.image(GW / 2, GH / 2, 'tv_' + tidx).setAlpha(0.15);
+            const bgT = TRACKS[tidx];
+            const bgImg = this.add.image(GW / 2, GH / 2, 'tv_' + tidx).setAlpha(0.15);
+            if ((bgT.W || GW) > GW || (bgT.H || GH) > GH) {
+                bgImg.setDisplaySize(GW, GH);
+            }
         }
 
         this.add.text(GW / 2, 150, 'SUPER OFF ROAD', {
@@ -856,7 +1196,7 @@ class TitleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.tweens.add({ targets: pt, alpha: 0.2, duration: 600, yoyo: true, repeat: -1 });
 
-        const mapHint = this.add.text(GW / 2, 665, 'Triple-tap 1–8 to jump to a track  (e.g. 777 = track 7)', {
+        const mapHint = this.add.text(GW / 2, 665, 'Triple-tap 1–9 to jump to a track  (e.g. 999 = NEON DRIVE)', {
             fontSize: '14px', fontFamily: 'monospace', color: '#555',
         }).setOrigin(0.5);
 
@@ -876,7 +1216,7 @@ class TitleScene extends Phaser.Scene {
 
         this.input.keyboard.on('keydown', (ev) => {
             const d = ev.key;
-            if (d >= '1' && d <= '8') {
+            if (d >= '1' && d <= '9') {
                 if (digitBuf.length > 0 && d !== digitBuf[0]) {
                     // different digit — reset
                     digitBuf = d;
@@ -1010,9 +1350,14 @@ class RaceScene extends Phaser.Scene {
         const ti = gs.raceNum % TRACKS.length;
         this.td = TRACKS[ti];
         this.wp = this.td.wp;
+        const TW = this.td.W, TH = this.td.H;
+        this.isBig = TW > GW || TH > GH;
 
-        // track background
-        this.add.image(GW / 2, GH / 2, 'tv_' + ti);
+        // track background (positioned so top-left = world origin)
+        this.add.image(TW / 2, TH / 2, 'tv_' + ti);
+
+        // camera bounds & follow for multi-screen tracks
+        this.cameras.main.setBounds(0, 0, TW, TH);
 
         // music: stop any previous track, play the one for this race
         this.sound.stopAll();
@@ -1046,6 +1391,7 @@ class RaceScene extends Phaser.Scene {
                 tMult: 1.0,
                 aiWp: Math.floor(this.td.wp.length * 0.96),
                 aiDiff: isP ? 0 : 0.8 + i * 0.08 + Math.min(gs.raceNum * 0.025, 0.6),
+                frozenTimer: 0,
             };
             this.syncSprite(t);
             this.trucks.push(t);
@@ -1054,8 +1400,44 @@ class RaceScene extends Phaser.Scene {
         // pickups
         this.pkActive = this.td.pks.map((p, i) => ({ ...p, on: true, i }));
         this.pkSprites = this.pkActive.map(p => {
-            return this.add.image(p.x, p.y, p.type === 'money' ? 'pk_money' : 'pk_nitro').setDepth(5);
+            const img = this.add.image(p.x, p.y, p.type === 'money' ? 'pk_money' : 'pk_nitro').setDepth(5);
+            // gentle pulse & rotate for liveliness
+            this.tweens.add({ targets: img, scale: { from: 1.0, to: 1.35 }, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+            if (p.type === 'nitro') {
+                this.tweens.add({ targets: img, angle: 360, duration: 1600, repeat: -1 });
+            }
+            return img;
         });
+
+        // soccer props: interactive balls + subbuteo figure
+        this.soccerBalls = [];
+        this.subbuteo = null;
+        if (this.td.soccerBalls) {
+            this.td.soccerBalls.forEach(b => {
+                const gfx = this.add.graphics().setDepth(7);
+                this.drawSoccerBallGfx(gfx, 0, 0, b.r);
+                gfx.x = b.x; gfx.y = b.y;
+                this.soccerBalls.push({ x: b.x, y: b.y, vx: 0, vy: 0, r: b.r, gfx, spin: 0 });
+            });
+        }
+        if (this.td.subbuteo) {
+            const sb = this.td.subbuteo;
+            const gfx = this.add.graphics().setDepth(7);
+            this.drawSubbuteoGfx(gfx, 0, 0);
+            gfx.x = sb.x; gfx.y = sb.y;
+            this.subbuteo = { x: sb.x, y: sb.y, gfx, tilt: 0, tiltVel: 0, baseY: sb.y };
+        }
+
+        // halloween ghost
+        this.ghost = null;
+        if (ti === 7) {
+            const gfx = this.add.graphics().setDepth(20);
+            this.ghost = {
+                x: GW / 2, y: GH / 2, vx: 1.5, vy: 1.0,
+                gfx, alpha: 0.85, wobble: 0, cooldown: 0,
+            };
+            this.drawGhostGfx(gfx, 0, 0);
+        }
 
         // controls
         this.cur = this.input.keyboard.createCursorKeys();
@@ -1071,11 +1453,16 @@ class RaceScene extends Phaser.Scene {
         // HUD
         this.buildHUD();
 
-        // countdown
+        // camera follow for multi-screen tracks
+        if (this.isBig) {
+            this.cameras.main.startFollow(this.trucks[0].spr, true, 0.12, 0.12);
+        }
+
+        // countdown — pinned to viewport
         this.cdTxt = this.add.text(GW / 2, GH / 2 - 60, '3', {
             fontSize: '72px', fontFamily: 'monospace', color: '#ff0000',
             fontStyle: 'bold', stroke: '#000', strokeThickness: 5,
-        }).setOrigin(0.5).setDepth(100);
+        }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
 
         SFX.countdownBeep(false); // '3' beep
 
@@ -1095,23 +1482,46 @@ class RaceScene extends Phaser.Scene {
     }
 
     buildHUD() {
-        const bar = this.add.rectangle(GW / 2, 22, GW, 44, 0x111111, 0.88).setDepth(50);
+        const bar = this.add.rectangle(GW / 2, 22, GW, 44, 0x111111, 0.88).setDepth(50).setScrollFactor(0);
         const s = { fontSize: '15px', fontFamily: 'monospace', color: '#fff' };
-        this.hPos = this.add.text(16, 8, 'POS: 1st', s).setDepth(51);
-        this.hLap = this.add.text(150, 8, 'LAP: 1/4', s).setDepth(51);
-        this.hMon = this.add.text(300, 8, '$200,000', { ...s, color: '#FFD700' }).setDepth(51);
-        this.hNit = this.add.text(480, 8, 'NITRO: 3', { ...s, color: '#ff6600' }).setDepth(51);
-        this.hRce = this.add.text(640, 8, `RACE ${gs.raceNum + 1}`, { ...s, color: '#aaa' }).setDepth(51);
+        this.hPos = this.add.text(16, 8, 'POS: 1st', s).setDepth(51).setScrollFactor(0);
+        this.hLap = this.add.text(150, 8, 'LAP: 1/4', s).setDepth(51).setScrollFactor(0);
+        this.hMon = this.add.text(300, 8, '$200,000', { ...s, color: '#FFD700' }).setDepth(51).setScrollFactor(0);
+        this.hNit = this.add.text(480, 8, 'NITRO: 3', { ...s, color: '#ff6600' }).setDepth(51).setScrollFactor(0);
+        this.hRce = this.add.text(640, 8, `RACE ${gs.raceNum + 1}`, { ...s, color: '#aaa' }).setDepth(51).setScrollFactor(0);
+        // speed meter bar
+        this.hSpdLbl = this.add.text(780, 8, 'SPD', s).setDepth(51).setScrollFactor(0);
+        this.hSpdBg = this.add.rectangle(820, 18, 90, 10, 0x222222, 0.8).setOrigin(0, 0.5).setDepth(50).setScrollFactor(0);
+        this.hSpdFill = this.add.rectangle(820, 18, 0, 8, 0x00ff88, 1).setOrigin(0, 0.5).setDepth(51).setScrollFactor(0);
         this.hBoard = [];
         const pad = 10, imgSz = 30, rowH = 42, fontSize = '28px';
         const bw = 300, bh = pad + 4 * rowH + pad, bx = GW - bw - pad, by = 46;
-        this.add.rectangle(bx + bw / 2, by + bh / 2, bw, bh, 0x111111, 0.85).setDepth(50).setOrigin(0.5);
+        this.add.rectangle(bx + bw / 2, by + bh / 2, bw, bh, 0x111111, 0.85).setDepth(50).setOrigin(0.5).setScrollFactor(0);
         for (let i = 0; i < 4; i++) {
             const ry = by + pad + i * rowH;
-            const img = this.add.image(bx + pad + imgSz / 2, ry + rowH / 2, this.trucks[i].imgKey).setDepth(51).setDisplaySize(imgSz, imgSz);
-            const nameTxt = this.add.text(bx + pad + imgSz + 8, ry + rowH / 2, '', { fontSize, fontFamily: 'monospace', color: '#ccc' }).setDepth(51).setOrigin(0, 0.5);
-            const posTxt = this.add.text(bx + bw - pad, ry + rowH / 2, '', { fontSize, fontFamily: 'monospace', color: '#ccc' }).setDepth(51).setOrigin(1, 0.5);
+            const img = this.add.image(bx + pad + imgSz / 2, ry + rowH / 2, this.trucks[i].imgKey).setDepth(51).setDisplaySize(imgSz, imgSz).setScrollFactor(0);
+            const nameTxt = this.add.text(bx + pad + imgSz + 8, ry + rowH / 2, '', { fontSize, fontFamily: 'monospace', color: '#ccc' }).setDepth(51).setOrigin(0, 0.5).setScrollFactor(0);
+            const posTxt = this.add.text(bx + bw - pad, ry + rowH / 2, '', { fontSize, fontFamily: 'monospace', color: '#ccc' }).setDepth(51).setOrigin(1, 0.5).setScrollFactor(0);
             this.hBoard.push({ img, nameTxt, posTxt });
+        }
+
+        // mini-map for multi-screen tracks
+        if (this.isBig) {
+            const mw = 140, mh = Math.round(mw * this.td.H / this.td.W);
+            const mx = GW - mw - 12, my = GH - mh - 12;
+            this.miniBg = this.add.rectangle(mx, my, mw, mh, 0x000022, 0.7).setOrigin(0, 0).setDepth(50).setScrollFactor(0).setStrokeStyle(2, 0xff2a6d, 0.9);
+            this.miniG = this.add.graphics().setDepth(51).setScrollFactor(0);
+            this.miniX = mx; this.miniY = my; this.miniW = mw; this.miniH = mh;
+            // draw static track path
+            this.miniG.lineStyle(2, 0x2af0ff, 0.8);
+            this.miniG.beginPath();
+            const wp = this.td.wp;
+            for (let i = 0; i < wp.length; i++) {
+                const sx = mx + wp[i].x / this.td.W * mw;
+                const sy = my + wp[i].y / this.td.H * mh;
+                i === 0 ? this.miniG.moveTo(sx, sy) : this.miniG.lineTo(sx, sy);
+            }
+            this.miniG.closePath(); this.miniG.strokePath();
         }
     }
 
@@ -1123,6 +1533,20 @@ class RaceScene extends Phaser.Scene {
         // update trucks
         this.trucks.forEach(t => {
             if (t.fin) { this.syncSprite(t); return; }
+            // frozen state — tick down, skip driving
+            if (t.frozenTimer > 0) {
+                t.frozenTimer -= delta;
+                t.vx *= 0.9; t.vy *= 0.9; // skid to halt
+                if (t.frozenTimer <= 0) {
+                    t.frozenTimer = 0;
+                    t.spr.clearTint();
+                }
+                t.x += t.vx * dt; t.y += t.vy * dt;
+                t.x = Phaser.Math.Clamp(t.x, 8, this.td.W - 8);
+                t.y = Phaser.Math.Clamp(t.y, 8, this.td.H - 8);
+                this.syncSprite(t);
+                return;
+            }
             if (t.isP) this.drivePlayer(t, dt);
             else this.driveAI(t, dt);
             this.physics(t, dt);
@@ -1132,6 +1556,8 @@ class RaceScene extends Phaser.Scene {
         });
 
         this.updateDust(dt);
+        if (this.soccerBalls.length > 0 || this.subbuteo) this.updateSoccerProps(dt);
+        if (this.ghost) this.updateGhost(dt, delta);
         this.calcPositions();
         this.drawHUD();
 
@@ -1145,7 +1571,8 @@ class RaceScene extends Phaser.Scene {
     drivePlayer(t, dt) {
         const spd = Math.hypot(t.vx, t.vy);
         const sf = Math.min(1, spd / (t.maxSpd * 0.6 + 0.01));
-        const steer = t.hand * dt * (0.3 + 0.7 * sf);
+        // more responsive steering at low speed, tighter at high speed
+        const steer = t.hand * dt * (0.55 + 0.55 * sf);
         if (this.cur.left.isDown) t.a -= steer;
         if (this.cur.right.isDown) t.a += steer;
 
@@ -1153,6 +1580,20 @@ class RaceScene extends Phaser.Scene {
             const am = t.nAct ? 1.8 : 1.0;
             t.vx += Math.cos(t.a) * t.acc * am * t.tMult * dt;
             t.vy += Math.sin(t.a) * t.acc * am * t.tMult * dt;
+        }
+        // brake / reverse with DOWN — more responsive controls
+        if (this.cur.down.isDown) {
+            const dx = Math.cos(t.a), dy = Math.sin(t.a);
+            const fwd = t.vx * dx + t.vy * dy;
+            if (fwd > 0) {
+                // braking
+                t.vx *= Math.pow(0.88, dt);
+                t.vy *= Math.pow(0.88, dt);
+            } else {
+                // reverse
+                t.vx -= dx * t.acc * 0.5 * dt;
+                t.vy -= dy * t.acc * 0.5 * dt;
+            }
         }
 
         // engine SFX
@@ -1162,7 +1603,13 @@ class RaceScene extends Phaser.Scene {
             t.nAct = true; t.nitros--; gs.nitros = t.nitros; t.nTmr = 90;
             this.nitroFX(t);
             SFX.nitro();
+            // punchy camera shake + flash
+            this.cameras.main.shake(180, 0.008);
+            this.cameras.main.flash(120, 255, 120, 40, true);
         }
+
+        // speed lines at high velocity (only player, on-screen effect)
+        if (spd > t.maxSpd * 0.85 && Math.random() < 0.5) this.spawnSpeedLine(t);
     }
 
     driveAI(t, dt) {
@@ -1196,13 +1643,23 @@ class RaceScene extends Phaser.Scene {
 
     physics(t, dt) {
         // nitro timer
-        if (t.nAct) { t.nTmr -= dt; if (t.nTmr <= 0) t.nAct = false; }
+        if (t.nAct) {
+            t.nTmr -= dt;
+            if (t.nTmr <= 0) t.nAct = false;
+            // continuous flame trail while active
+            if (Math.random() < 0.7) this.nitroFX(t);
+        }
 
         // decompose velocity
         const fx = Math.cos(t.a), fy = Math.sin(t.a);
         const rx = -Math.sin(t.a), ry = Math.cos(t.a);
         const fwd = t.vx * fx + t.vy * fy;
         const lat = t.vx * rx + t.vy * ry;
+
+        // sharp skidding — leave tire marks when there's real lateral velocity
+        if (t.isP && Math.abs(lat) > 1.0 && Math.hypot(t.vx, t.vy) > 1.2) {
+            this.spawnSkid(t);
+        }
 
         const latFric = Math.pow(t.stab, dt);
         const fwdFric = Math.pow(0.994, dt);
@@ -1229,8 +1686,8 @@ class RaceScene extends Phaser.Scene {
         }
 
         // boundary
-        t.x = Phaser.Math.Clamp(nx, 8, GW - 8);
-        t.y = Phaser.Math.Clamp(ny, 8, GH - 8);
+        t.x = Phaser.Math.Clamp(nx, 8, this.td.W - 8);
+        t.y = Phaser.Math.Clamp(ny, 8, this.td.H - 8);
 
         // truck-truck collisions
         for (const o of this.trucks) {
@@ -1249,9 +1706,10 @@ class RaceScene extends Phaser.Scene {
 
     terrain(x, y) {
         const px = this.td.cpx;
+        const TW = this.td.W, TH = this.td.H;
         const ix = Math.floor(x), iy = Math.floor(y);
-        if (ix < 0 || ix >= GW || iy < 0 || iy >= GH) return 'offroad';
-        const i = (iy * GW + ix) * 4;
+        if (ix < 0 || ix >= TW || iy < 0 || iy >= TH) return 'offroad';
+        const i = (iy * TW + ix) * 4;
         if (px[i + 1] > 200 && px[i] < 100 && px[i + 2] < 100) return 'road';
         if (px[i + 2] > 200 && px[i] < 100 && px[i + 1] < 100) return 'mud';
         return 'offroad';
@@ -1285,7 +1743,8 @@ class RaceScene extends Phaser.Scene {
                             fontSize: '48px', fontFamily: 'monospace',
                             color: t.finPos === 0 ? '#FFD700' : '#fff',
                             fontStyle: 'bold', stroke: '#000', strokeThickness: 5,
-                        }).setOrigin(0.5).setDepth(100);
+                        }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
+                        this.cameras.main.flash(400, 255, 215, 0);
                     }
                 }
             }
@@ -1324,20 +1783,339 @@ class RaceScene extends Phaser.Scene {
         d._life = 30; this.dust.push(d);
     }
 
+    // thin streaks behind the player showing speed
+    spawnSpeedLine(t) {
+        const bx = t.x - Math.cos(t.a) * TS * 1.4, by = t.y - Math.sin(t.a) * TS * 1.4;
+        const color = this.td.synth ? 0x2af0ff : 0xffffff;
+        const l = this.add.rectangle(bx, by, 8 + Math.random() * 10, 1.5, color, 0.8).setDepth(4);
+        l.setRotation(t.a);
+        l._life = 14; this.dust.push(l);
+    }
+
+    // tire skid marks on sharp turns
+    spawnSkid(t) {
+        const rx = -Math.sin(t.a), ry = Math.cos(t.a);
+        const off = TS * 0.5;
+        const color = this.td.synth ? 0x220033 : 0x111111;
+        for (const s of [-1, 1]) {
+            const sx = t.x + rx * off * s, sy = t.y + ry * off * s;
+            const m = this.add.rectangle(sx, sy, 3, 3, color, 0.4).setDepth(2);
+            m._life = 120; this.dust.push(m);
+        }
+    }
+
     nitroFX(t) {
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 12; i++) {
             const bx = t.x - Math.cos(t.a) * TS, by = t.y - Math.sin(t.a) * TS;
-            const fl = this.add.circle(bx + (Math.random() - 0.5) * 8, by + (Math.random() - 0.5) * 8,
-                2 + Math.random() * 4, 0xff4400, 0.9).setDepth(3);
-            fl._life = 12 + Math.random() * 15; this.dust.push(fl);
+            // layered hot colours: cyan/yellow/orange/red for flame effect
+            const col = this.td.synth
+                ? [0x2af0ff, 0xff2a6d, 0xffee00, 0xff66cc][i % 4]
+                : [0xffee00, 0xff8800, 0xff4400, 0xcc0000][i % 4];
+            const fl = this.add.circle(bx + (Math.random() - 0.5) * 12, by + (Math.random() - 0.5) * 12,
+                2 + Math.random() * 5, col, 0.95).setDepth(3);
+            fl._life = 10 + Math.random() * 20; this.dust.push(fl);
         }
     }
 
     updateDust(dt) {
         for (let i = this.dust.length - 1; i >= 0; i--) {
-            const p = this.dust[i]; p._life -= dt; p.setAlpha(Math.max(0, p._life / 30));
+            const p = this.dust[i]; p._life -= dt;
+            const maxLife = p._maxLife || 30;
+            if (!p._maxLife) p._maxLife = Math.max(30, p._life + dt);
+            p.setAlpha(Math.max(0, p._life / p._maxLife));
             if (p._life <= 0) { p.destroy(); this.dust.splice(i, 1); }
         }
+    }
+
+    // ── Soccer ball graphics ──
+    drawSoccerBallGfx(gfx, cx, cy, r) {
+        gfx.clear();
+        // white base
+        gfx.fillStyle(0xffffff, 1); gfx.fillCircle(cx, cy, r);
+        // centre pentagon (dark)
+        gfx.fillStyle(0x222222, 1);
+        gfx.beginPath();
+        for (let p = 0; p < 5; p++) {
+            const a = (p / 5) * Math.PI * 2 - Math.PI / 2;
+            const px2 = cx + Math.cos(a) * r * 0.35;
+            const py2 = cy + Math.sin(a) * r * 0.35;
+            p === 0 ? gfx.moveTo(px2, py2) : gfx.lineTo(px2, py2);
+        }
+        gfx.closePath(); gfx.fillPath();
+        // outer pentagons
+        for (let p = 0; p < 5; p++) {
+            const a = (p / 5) * Math.PI * 2 - Math.PI / 2;
+            const ox = cx + Math.cos(a) * r * 0.72;
+            const oy = cy + Math.sin(a) * r * 0.72;
+            gfx.beginPath();
+            for (let q = 0; q < 5; q++) {
+                const a2 = (q / 5) * Math.PI * 2 - Math.PI / 2;
+                const px2 = ox + Math.cos(a2) * r * 0.25;
+                const py2 = oy + Math.sin(a2) * r * 0.25;
+                q === 0 ? gfx.moveTo(px2, py2) : gfx.lineTo(px2, py2);
+            }
+            gfx.closePath(); gfx.fillPath();
+        }
+        // outline
+        gfx.lineStyle(r * 0.1, 0x333333, 1);
+        gfx.strokeCircle(cx, cy, r);
+    }
+
+    // ── Subbuteo figure graphics ──
+    drawSubbuteoGfx(gfx, cx, cy) {
+        gfx.clear();
+        // dome base
+        gfx.fillStyle(0x1a1a1a, 1);
+        gfx.fillEllipse(cx, cy + 12, 24, 10);
+        gfx.fillStyle(0x222222, 1);
+        gfx.fillEllipse(cx, cy + 10, 22, 8);
+        // rod / peg
+        gfx.fillStyle(0x333333, 1);
+        gfx.fillRect(cx - 1.5, cy - 2, 3, 14);
+        // body (blue shirt)
+        gfx.fillStyle(0x1a4fc4, 1);
+        gfx.fillRect(cx - 5, cy - 10, 10, 10);
+        // white shorts
+        gfx.fillStyle(0xffffff, 1);
+        gfx.fillRect(cx - 4, cy, 8, 4);
+        // legs
+        gfx.fillStyle(0xe8c090, 1);
+        gfx.fillRect(cx - 3, cy + 4, 2.5, 5);
+        gfx.fillRect(cx + 0.5, cy + 4, 2.5, 5);
+        // boots
+        gfx.fillStyle(0x111111, 1);
+        gfx.fillRect(cx - 3, cy + 9, 3, 2);
+        gfx.fillRect(cx + 0.5, cy + 9, 3, 2);
+        // head
+        gfx.fillStyle(0xe8c090, 1);
+        gfx.fillCircle(cx, cy - 13, 4);
+        // hair
+        gfx.fillStyle(0x3a2a1a, 1);
+        gfx.beginPath(); gfx.arc(cx, cy - 14.5, 3.5, Math.PI, Math.PI * 2); gfx.closePath(); gfx.fillPath();
+    }
+
+    // ── Soccer ball & subbuteo collision + physics ──
+    updateSoccerProps(dt) {
+        const BALL_FRIC = 0.97;
+        const BALL_BOUNCE = 0.7;
+        const SUB_RADIUS = 14;
+
+        // update soccer balls
+        this.soccerBalls.forEach(b => {
+            // truck-ball collisions
+            this.trucks.forEach(t => {
+                const d = Math.hypot(t.x - b.x, t.y - b.y);
+                if (d < b.r + TS && d > 0.1) {
+                    const nx = (b.x - t.x) / d, ny = (b.y - t.y) / d;
+                    // push ball out of truck
+                    const overlap = b.r + TS - d;
+                    b.x += nx * overlap;
+                    b.y += ny * overlap;
+                    // pool-ball velocity transfer
+                    const truckSpd = Math.hypot(t.vx, t.vy);
+                    const impactDot = t.vx * nx + t.vy * ny;
+                    const transferFactor = Math.max(impactDot, truckSpd * 0.3);
+                    b.vx += nx * transferFactor * 1.8;
+                    b.vy += ny * transferFactor * 1.8;
+                    // slight deflection to truck
+                    t.vx -= nx * transferFactor * 0.15;
+                    t.vy -= ny * transferFactor * 0.15;
+                    b.spin = (t.vx * ny - t.vy * nx) * 0.3;
+                    SFX.ballKick();
+                }
+            });
+
+            // ball-ball collisions (pool style)
+            this.soccerBalls.forEach(b2 => {
+                if (b2 === b) return;
+                const d = Math.hypot(b.x - b2.x, b.y - b2.y);
+                const minD = b.r + b2.r;
+                if (d < minD && d > 0.1) {
+                    const nx = (b2.x - b.x) / d, ny = (b2.y - b.y) / d;
+                    const overlap = minD - d;
+                    b.x -= nx * overlap * 0.5;
+                    b.y -= ny * overlap * 0.5;
+                    b2.x += nx * overlap * 0.5;
+                    b2.y += ny * overlap * 0.5;
+                    // elastic collision along normal
+                    const relVn = (b.vx - b2.vx) * nx + (b.vy - b2.vy) * ny;
+                    if (relVn > 0) {
+                        b.vx -= relVn * nx * 0.5;
+                        b.vy -= relVn * ny * 0.5;
+                        b2.vx += relVn * nx * 0.5;
+                        b2.vy += relVn * ny * 0.5;
+                    }
+                }
+            });
+
+            // physics
+            b.vx *= Math.pow(BALL_FRIC, dt);
+            b.vy *= Math.pow(BALL_FRIC, dt);
+            b.spin *= Math.pow(0.95, dt);
+            b.x += b.vx * dt;
+            b.y += b.vy * dt;
+
+            // boundary bounce
+            if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) * BALL_BOUNCE; }
+            if (b.x > GW - b.r) { b.x = GW - b.r; b.vx = -Math.abs(b.vx) * BALL_BOUNCE; }
+            if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy) * BALL_BOUNCE; }
+            if (b.y > GH - b.r) { b.y = GH - b.r; b.vy = -Math.abs(b.vy) * BALL_BOUNCE; }
+
+            // update graphics
+            b.gfx.x = b.x;
+            b.gfx.y = b.y;
+            b.gfx.rotation += b.spin * dt * 0.1;
+        });
+
+        // update subbuteo figure
+        if (this.subbuteo) {
+            const sb = this.subbuteo;
+            // truck-subbuteo collisions
+            this.trucks.forEach(t => {
+                const d = Math.hypot(t.x - sb.x, t.y - sb.y);
+                if (d < SUB_RADIUS + TS && d > 0.1) {
+                    const nx = (sb.x - t.x) / d;
+                    // push figure slightly
+                    const overlap = SUB_RADIUS + TS - d;
+                    sb.x += nx * overlap * 0.3;
+                    // determine tilt direction from impact
+                    const impactSide = (t.x < sb.x) ? 1 : -1;
+                    const truckSpd = Math.hypot(t.vx, t.vy);
+                    sb.tiltVel += impactSide * Math.min(truckSpd * 0.15, 0.6);
+                    // slight truck deflection
+                    t.vx *= 0.92; t.vy *= 0.92;
+                    SFX.subbuteoHit();
+                }
+            });
+
+            // spring-damper wobble physics (like real subbuteo weighted base)
+            const SPRING = 0.12;   // restoring force
+            const DAMPING = 0.92;  // energy loss per frame
+            const MAX_TILT = 0.7;  // max tilt angle in radians (~40 degrees)
+
+            sb.tiltVel += -sb.tilt * SPRING * dt;
+            sb.tiltVel *= Math.pow(DAMPING, dt);
+            sb.tilt += sb.tiltVel * dt;
+            sb.tilt = Phaser.Math.Clamp(sb.tilt, -MAX_TILT, MAX_TILT);
+
+            // snap to rest when nearly still
+            if (Math.abs(sb.tilt) < 0.005 && Math.abs(sb.tiltVel) < 0.005) {
+                sb.tilt = 0; sb.tiltVel = 0;
+            }
+
+            sb.gfx.x = sb.x;
+            sb.gfx.y = sb.baseY;
+            sb.gfx.rotation = sb.tilt;
+        }
+    }
+
+    // ── Halloween ghost ──
+    drawGhostGfx(gfx, cx, cy) {
+        gfx.clear();
+        // ghostly glow
+        gfx.fillStyle(0xffffff, 0.15);
+        gfx.fillCircle(cx, cy - 4, 20);
+        // main body
+        gfx.fillStyle(0xeeeeff, 0.85);
+        gfx.beginPath();
+        gfx.moveTo(cx - 12, cy + 10);
+        gfx.lineTo(cx - 14, cy - 4);
+        gfx.arc(cx, cy - 8, 14, Math.PI, 0, false);
+        gfx.lineTo(cx + 14, cy - 4);
+        gfx.lineTo(cx + 12, cy + 10);
+        // wavy bottom
+        gfx.lineTo(cx + 8, cy + 6);
+        gfx.lineTo(cx + 4, cy + 12);
+        gfx.lineTo(cx, cy + 7);
+        gfx.lineTo(cx - 4, cy + 12);
+        gfx.lineTo(cx - 8, cy + 6);
+        gfx.closePath();
+        gfx.fillPath();
+        // eyes
+        gfx.fillStyle(0x111133, 1);
+        gfx.fillEllipse(cx - 5, cy - 8, 5, 6);
+        gfx.fillEllipse(cx + 5, cy - 8, 5, 6);
+        // pupils
+        gfx.fillStyle(0x4444ff, 1);
+        gfx.fillCircle(cx - 5, cy - 7, 1.5);
+        gfx.fillCircle(cx + 5, cy - 7, 1.5);
+        // open mouth
+        gfx.fillStyle(0x222244, 0.8);
+        gfx.fillEllipse(cx, cy - 1, 5, 4);
+    }
+
+    updateGhost(dt, deltaMs) {
+        const g = this.ghost;
+        const GHOST_SPD = 1.8;
+        const GHOST_R = 16;
+        const FREEZE_MS = 2000;
+
+        g.wobble += dt * 0.15;
+        if (g.cooldown > 0) g.cooldown -= deltaMs;
+
+        // drift towards nearest non-frozen truck
+        let closest = null, closestD = Infinity;
+        this.trucks.forEach(t => {
+            if (t.fin || t.frozenTimer > 0) return;
+            const d = dist(g, t);
+            if (d < closestD) { closestD = d; closest = t; }
+        });
+
+        if (closest) {
+            const dx = closest.x - g.x, dy = closest.y - g.y;
+            const d = Math.hypot(dx, dy) || 1;
+            // steer towards target with some wobble
+            g.vx += (dx / d * GHOST_SPD - g.vx) * 0.03 * dt;
+            g.vy += (dy / d * GHOST_SPD - g.vy) * 0.03 * dt;
+        }
+
+        // add sinusoidal drift for spooky floating movement
+        g.vx += Math.sin(g.wobble * 3.1) * 0.02 * dt;
+        g.vy += Math.cos(g.wobble * 2.7) * 0.02 * dt;
+
+        // clamp speed
+        const spd = Math.hypot(g.vx, g.vy);
+        if (spd > GHOST_SPD) {
+            g.vx = g.vx / spd * GHOST_SPD;
+            g.vy = g.vy / spd * GHOST_SPD;
+        }
+
+        g.x += g.vx * dt;
+        g.y += g.vy * dt;
+
+        // boundary wrap
+        if (g.x < -20) g.x = GW + 20;
+        if (g.x > GW + 20) g.x = -20;
+        if (g.y < -20) g.y = GH + 20;
+        if (g.y > GH + 20) g.y = -20;
+
+        // collision with trucks — freeze on contact
+        if (g.cooldown <= 0) {
+            this.trucks.forEach(t => {
+                if (t.fin || t.frozenTimer > 0) return;
+                if (dist(g, t) < GHOST_R + TS) {
+                    t.frozenTimer = FREEZE_MS;
+                    t.spr.setTint(0x88bbff); // icy blue tint
+                    g.cooldown = 1500; // ghost can't freeze again immediately
+                    SFX.ghostFreeze();
+                    // ghost bounces away
+                    const dx = g.x - t.x, dy = g.y - t.y;
+                    const d = Math.hypot(dx, dy) || 1;
+                    g.vx = dx / d * GHOST_SPD * 1.5;
+                    g.vy = dy / d * GHOST_SPD * 1.5;
+                    // ice particles
+                    if (t.isP) {
+                        this.floatTxt(t.x, t.y - 20, '❄ FROZEN! ❄', '#88bbff');
+                    }
+                }
+            });
+        }
+
+        // update graphics position + bobbing
+        g.gfx.x = g.x;
+        g.gfx.y = g.y + Math.sin(g.wobble * 4) * 3;
+        g.gfx.alpha = 0.7 + Math.sin(g.wobble * 5) * 0.15;
+        g.gfx.scaleX = 1 + Math.sin(g.wobble * 3) * 0.05;
     }
 
     calcPositions() {
@@ -1361,6 +2139,12 @@ class RaceScene extends Phaser.Scene {
         this.hLap.setText('LAP: ' + Math.min(t0.laps + 1, TOTAL_LAPS) + '/' + TOTAL_LAPS);
         this.hMon.setText('$' + gs.money.toLocaleString());
         this.hNit.setText('NITRO: ' + t0.nitros + (t0.nAct ? ' 🔥' : ''));
+        // speed meter
+        const spd = Math.hypot(t0.vx, t0.vy);
+        const ratio = Math.min(1, spd / ((t0.nAct ? t0.maxSpd * 1.5 : t0.maxSpd) + 0.001));
+        this.hSpdFill.width = 90 * ratio;
+        const col = ratio > 0.9 ? 0xff2a6d : ratio > 0.6 ? 0xffcc00 : 0x00ff88;
+        this.hSpdFill.fillColor = col;
         if (this.posOrder) {
             this.hBoard.forEach((entry, i) => {
                 const ti = this.posOrder[i];
@@ -1368,6 +2152,27 @@ class RaceScene extends Phaser.Scene {
                 entry.img.setTexture(tk.imgKey);
                 entry.nameTxt.setText(tk.name).setColor(hexCSS(tk.col));
                 entry.posTxt.setText(pl[i]).setColor(hexCSS(tk.col));
+            });
+        }
+
+        // update mini-map truck dots
+        if (this.miniG && this.isBig) {
+            // redraw dots only (preserve path by accumulating — cheaper: full redraw)
+            this.miniG.clear();
+            this.miniG.lineStyle(2, 0x2af0ff, 0.8);
+            this.miniG.beginPath();
+            const wp = this.td.wp;
+            for (let i = 0; i < wp.length; i++) {
+                const sx = this.miniX + wp[i].x / this.td.W * this.miniW;
+                const sy = this.miniY + wp[i].y / this.td.H * this.miniH;
+                i === 0 ? this.miniG.moveTo(sx, sy) : this.miniG.lineTo(sx, sy);
+            }
+            this.miniG.closePath(); this.miniG.strokePath();
+            this.trucks.forEach(tk => {
+                const mx = this.miniX + tk.x / this.td.W * this.miniW;
+                const my = this.miniY + tk.y / this.td.H * this.miniH;
+                this.miniG.fillStyle(tk.col, 1);
+                this.miniG.fillCircle(mx, my, tk.isP ? 3.5 : 2.5);
             });
         }
     }
