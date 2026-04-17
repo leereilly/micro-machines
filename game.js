@@ -1888,6 +1888,10 @@ class RaceScene extends Phaser.Scene {
                 tMult: 1.0,
                 aiWp: Math.floor(this.td.wp.length * 0.96),
                 aiDiff: isP ? 0 : 0.8 + i * 0.08 + Math.min(gs.raceNum * 0.025, 0.6),
+                // Driving skill tier per AI slot: very good / ok / bad.
+                // Higher = cleaner line, better braking, less steering noise.
+                aiSkill:  isP ? 1 : [0, 0.95, 0.72, 0.48][i],
+                aiPhase:  Math.random() * Math.PI * 2,
                 frozenTimer: 0,
             };
             this.syncSprite(t);
@@ -2144,31 +2148,81 @@ class RaceScene extends Phaser.Scene {
     }
 
     driveAI(t, dt) {
-        const tgt = this.wp[t.aiWp];
-        const ta = Math.atan2(tgt.y - t.y, tgt.x - t.x);
+        const wps = this.wp, N = wps.length;
+        const skill = t.aiSkill ?? 0.7;
+
+        // Advance the waypoint as soon as we're close OR we've passed it
+        // (projection on forward axis is behind us). Prevents orbiting
+        // a target the AI repeatedly overshoots.
+        for (let guard = 0; guard < 4; guard++) {
+            const w = wps[t.aiWp];
+            const dx = w.x - t.x, dy = w.y - t.y;
+            const d2 = dx * dx + dy * dy;
+            const fx = Math.cos(t.a), fy = Math.sin(t.a);
+            const passed = (dx * fx + dy * fy) < 0 && d2 < (WP_DIST * 3) * (WP_DIST * 3);
+            if (d2 < WP_DIST * WP_DIST || passed) {
+                t.aiWp = (t.aiWp + 1) % N;
+            } else break;
+        }
+
+        // Look ahead: better drivers read further down the road.
+        const look = 1 + Math.floor(skill * 4);               // 1..5 points
+        const aim = wps[(t.aiWp + look) % N];
+
+        // Desired heading toward the aim point, plus a touch of
+        // wandering noise for weaker AIs (feels human, not robotic).
+        let ta = Math.atan2(aim.y - t.y, aim.x - t.x);
+        const noiseAmp = (1 - skill) * 0.35;
+        if (noiseAmp > 0) {
+            t.aiPhase = (t.aiPhase || 0) + dt * 0.04;
+            ta += Math.sin(t.aiPhase) * noiseAmp;
+        }
+
         let ad = ta - t.a;
         while (ad > Math.PI) ad -= Math.PI * 2;
         while (ad < -Math.PI) ad += Math.PI * 2;
-        const ss = t.hand * t.aiDiff * dt;
+
+        // Steering rate scales with handling, difficulty and skill.
+        const ss = t.hand * t.aiDiff * (0.7 + skill * 0.6) * dt;
         if (ad < -0.05) t.a -= Math.min(ss, -ad);
         else if (ad > 0.05) t.a += Math.min(ss, ad);
 
+        // Corner braking: if the road ahead curves sharply, good drivers
+        // back off the throttle; bad drivers plow straight through.
+        const p1 = wps[(t.aiWp + 2) % N];
+        const p2 = wps[(t.aiWp + 5) % N];
+        const curveA = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+        let curveErr = Math.abs(((curveA - t.a + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+        const brakeStrength = 0.3 + skill * 0.7;              // 0.3..1.0
+        let throttle = 1.0;
+        if (curveErr > 0.55) throttle -= (curveErr - 0.55) * brakeStrength;
+        // Heading error also reduces throttle (good AI doesn't floor it sideways).
+        throttle -= Math.min(0.5, Math.abs(ad) * (0.3 + skill * 0.5));
+        throttle = Math.max(0.25, Math.min(1.0, throttle));
+
+        // Occasional mistake — weaker AIs briefly lift off the gas.
+        if (skill < 0.85 && Math.random() < (1 - skill) * 0.0008 * dt) {
+            throttle *= 0.3;
+        }
+
         const am = t.nAct ? 1.8 : 1.0;
-        t.vx += Math.cos(t.a) * t.acc * am * t.aiDiff * t.tMult * dt;
-        t.vy += Math.sin(t.a) * t.acc * am * t.aiDiff * t.tMult * dt;
+        t.vx += Math.cos(t.a) * t.acc * am * t.aiDiff * t.tMult * throttle * dt;
+        t.vy += Math.sin(t.a) * t.acc * am * t.aiDiff * t.tMult * throttle * dt;
 
-        if (dist(t, tgt) < WP_DIST) t.aiWp = (t.aiWp + 1) % this.wp.length;
-
-        // rubber-banding
+        // rubber-banding (unchanged)
         const pl = this.trucks[0];
         const pp = pl.laps * 1000 + pl.nxtCk * 250;
         const ap = t.laps * 1000 + t.nxtCk * 250;
         if (ap > pp + 400) t.aiDiff = Math.max(0.55, t.aiDiff - 0.0008 * dt);
         else if (ap < pp - 300) t.aiDiff = Math.min(1.45, t.aiDiff + 0.001 * dt);
 
-        // AI nitro
-        if (t.nitros > 0 && !t.nAct && ((ap < pp && Math.random() < 0.004) || Math.random() < 0.0008)) {
-            t.nAct = true; t.nitros--; t.nTmr = 90;
+        // AI nitro — skilled drivers save it for straights.
+        if (t.nitros > 0 && !t.nAct) {
+            const straight = curveErr < 0.3 && Math.abs(ad) < 0.25;
+            const want = straight ? 0.006 * skill : 0.0008;
+            if ((ap < pp && Math.random() < want) || Math.random() < 0.0004) {
+                t.nAct = true; t.nitros--; t.nTmr = 90;
+            }
         }
     }
 
