@@ -8,7 +8,7 @@ A browser-based racing game built with [Phaser 3](https://phaser.io/), inspired 
 
 ## Play
 
-Open `index.html` in a browser — no build step required.
+Open `index.html` in a browser.
 
 ## Features
 
