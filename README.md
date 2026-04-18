@@ -1,8 +1,7 @@
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="images/dark-logo.png">
-    <source media="(prefers-color-scheme: light)" srcset="images/light-logo.png">
-    <img alt="Micro Machines" src="images/light-logo.png" style="width: 40%; height: auto;">
+    <img alt="Micro Machines" src="images/light-logo.png" width="40%">
   </picture>
 </div>
 
