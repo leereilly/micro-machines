@@ -1077,7 +1077,7 @@ class BootScene extends Phaser.Scene {
         this.genTrucks();
         this.genPickups();
         this.genTracks();
-        this.scene.start('TitleScene');
+        this.scene.start('MainMenuScene');
     }
 
     genTrucks() {
@@ -2457,6 +2457,244 @@ class BootScene extends Phaser.Scene {
                 t.pks.push({ x: pt.x + Math.cos(ra) * rd, y: pt.y + Math.sin(ra) * rd, type: 'nitro' });
             }
         });
+    }
+}
+
+// ── MAIN MENU SCENE ─────────────────────────────────────────
+class MainMenuScene extends Phaser.Scene {
+    constructor() { super('MainMenuScene'); }
+
+    create() {
+        this.cameras.main.setBackgroundColor('#000');
+
+        // Decorative background track preview
+        const tidx = Math.floor(Math.random() * TRACKS.length);
+        if (this.textures.exists('tv_' + tidx)) {
+            const bgT = TRACKS[tidx];
+            const bgImg = this.add.image(GW / 2, GH / 2, 'tv_' + tidx).setAlpha(0.12);
+            if ((bgT.W || GW) > GW || (bgT.H || GH) > GH) bgImg.setDisplaySize(GW, GH);
+        }
+
+        // Title
+        this.add.text(GW / 2, 120, 'MICRO MACHINES', {
+            fontSize: '60px', fontFamily: 'monospace', color: '#FFD700',
+            fontStyle: 'bold', stroke: '#6B3410', strokeThickness: 8,
+        }).setOrigin(0.5);
+
+        this.add.text(GW / 2, 200, 'Web Recreation', {
+            fontSize: '22px', fontFamily: 'monospace', color: '#bbb',
+        }).setOrigin(0.5);
+
+        // Menu items
+        const ITEMS = ['PLAY', 'ABOUT', 'CREDITS', 'CONTROLS'];
+        this.menuSel = 0;
+        this.currentPanel = null;
+
+        const menuStartY = 305;
+        const menuSpacing = 60;
+        this.menuTexts = ITEMS.map((label, i) =>
+            this.add.text(GW / 2, menuStartY + i * menuSpacing, label, {
+                fontSize: '34px', fontFamily: 'monospace',
+                color: i === 0 ? '#FFD700' : '#888', fontStyle: 'bold',
+            }).setOrigin(0.5)
+        );
+
+        this.cursor = this.add.text(GW / 2 - 175, menuStartY, '▶', {
+            fontSize: '30px', fontFamily: 'monospace', color: '#FFD700',
+        }).setOrigin(0.5);
+
+        // Sub-panels
+        this.aboutPanel    = this._buildAbout();
+        this.creditsPanel  = this._buildCredits();
+        this.controlsPanel = this._buildControls();
+        [this.aboutPanel, this.creditsPanel, this.controlsPanel].forEach(p => p.setVisible(false));
+
+        // Track cheat code (*NN)
+        const mapSelect = this.add.text(GW / 2, GH - 36, '', {
+            fontSize: '20px', fontFamily: 'monospace', color: '#ff6600', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        let starMode = false, starBuf = '', starTimer = null;
+        const flushStar = () => { starMode = false; starBuf = ''; mapSelect.setText(''); starTimer = null; };
+
+        this.input.keyboard.on('keydown', (ev) => {
+            const d = ev.key;
+            if (d === '*') {
+                if (starTimer) clearTimeout(starTimer);
+                starMode = true; starBuf = '';
+                mapSelect.setText('TRACK SELECT: *');
+                starTimer = setTimeout(flushStar, 2000);
+                return;
+            }
+            if (starMode && d >= '0' && d <= '9') {
+                starBuf += d;
+                mapSelect.setText('TRACK SELECT: *' + starBuf);
+                if (starTimer) clearTimeout(starTimer);
+                if (starBuf.length === 2) {
+                    const idx = Math.min(parseInt(starBuf, 10), TRACKS.length - 1);
+                    gs = resetGameState();
+                    gs.raceNum = idx;
+                    gs.highestUnlocked = idx;
+                    flushStar();
+                    this.scene.start('PlayerSelectScene');
+                } else {
+                    starTimer = setTimeout(flushStar, 2000);
+                }
+            }
+        });
+
+        this.input.keyboard.on('keydown-UP',    () => this._nav(-1));
+        this.input.keyboard.on('keydown-DOWN',  () => this._nav(1));
+        this.input.keyboard.on('keydown-ENTER', () => this._select());
+        this.input.keyboard.on('keydown-SPACE', () => { if (!this.currentPanel) this._select(); });
+        this.input.keyboard.on('keydown-ESC',   () => this._showMain());
+    }
+
+    _nav(dir) {
+        if (this.currentPanel) return;
+        this.menuTexts[this.menuSel].setColor('#888');
+        this.menuSel = Phaser.Math.Clamp(this.menuSel + dir, 0, this.menuTexts.length - 1);
+        this.menuTexts[this.menuSel].setColor('#FFD700');
+        this.cursor.setY(this.menuTexts[this.menuSel].y);
+    }
+
+    _select() {
+        if (this.currentPanel) return;
+        switch (this.menuSel) {
+            case 0: gs = resetGameState(); this.scene.start('PlayerSelectScene'); break;
+            case 1: this._showPanel(this.aboutPanel);    break;
+            case 2: this._showPanel(this.creditsPanel);  break;
+            case 3: this._showPanel(this.controlsPanel); break;
+        }
+    }
+
+    _showPanel(panel) {
+        this.currentPanel = panel;
+        this.menuTexts.forEach(t => t.setVisible(false));
+        this.cursor.setVisible(false);
+        panel.setVisible(true);
+    }
+
+    _showMain() {
+        if (this.currentPanel) {
+            this.currentPanel.setVisible(false);
+            this.currentPanel = null;
+        }
+        this.menuTexts.forEach(t => t.setVisible(true));
+        this.cursor.setVisible(true);
+    }
+
+    _buildAbout() {
+        const c = this.add.container(0, 0);
+        const addTxt = (x, y, txt, style) => {
+            const t = this.add.text(x, y, txt, { fontFamily: 'monospace', ...style });
+            c.add(t);
+            return t;
+        };
+
+        addTxt(GW / 2, 215, 'ABOUT', {
+            fontSize: '36px', color: '#FFD700', fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        const lines = [
+            'Built for the GameDev.js Jam 2026',
+            'for the theme "Machines".',
+            '',
+            'Inspired by the classic late \'80s and',
+            'early \'90s Micro Machines, and Ivan',
+            '"Ironman" Stewart\'s Super Off Road.',
+        ];
+        let bodyY = 305;
+        lines.forEach(line => {
+            if (!line) { bodyY += 22; return; }
+            addTxt(GW / 2, bodyY, line, { fontSize: '21px', color: '#ccc' }).setOrigin(0.5);
+            bodyY += 44;
+        });
+
+        addTxt(GW / 2, GH - 46, 'ESC  ·  BACK', { fontSize: '16px', color: '#555' }).setOrigin(0.5);
+        return c;
+    }
+
+    _buildCredits() {
+        const c = this.add.container(0, 0);
+        const addTxt = (x, y, txt, style) => {
+            const t = this.add.text(x, y, txt, { fontFamily: 'monospace', ...style });
+            c.add(t);
+            return t;
+        };
+
+        addTxt(GW / 2, 175, 'CREDITS', {
+            fontSize: '36px', color: '#FFD700', fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        const sections = [
+            {
+                header: 'GAME DESIGN & DEVELOPMENT',
+                entries: [
+                    { text: 'Lee Reilly',     color: '#fff' },
+                    { text: 'GitHub Copilot', color: '#7b5ea7' },
+                ],
+            },
+            {
+                header: 'GAME ASSETS',
+                entries: [
+                    { text: 'Kenney — Racing Pack',         color: '#fff' },
+                    { text: 'kenney.nl/assets/racing-pack', color: '#888', small: true },
+                ],
+            },
+            {
+                header: 'MUSIC',
+                entries: [
+                    { text: 'MFCC — Pixabay',              color: '#fff' },
+                    { text: 'pixabay.com/users/28627740/',  color: '#888', small: true },
+                ],
+            },
+        ];
+
+        let y = 245;
+        sections.forEach(sec => {
+            addTxt(GW / 2, y, sec.header, {
+                fontSize: '14px', color: '#666', fontStyle: 'italic',
+            }).setOrigin(0.5);
+            y += 28;
+            sec.entries.forEach(e => {
+                addTxt(GW / 2, y, e.text, {
+                    fontSize: e.small ? '15px' : '21px', color: e.color, fontStyle: 'bold',
+                }).setOrigin(0.5);
+                y += e.small ? 24 : 34;
+            });
+            y += 20;
+        });
+
+        addTxt(GW / 2, GH - 46, 'ESC  ·  BACK', { fontSize: '16px', color: '#555' }).setOrigin(0.5);
+        return c;
+    }
+
+    _buildControls() {
+        const c = this.add.container(0, 0);
+        const addTxt = (x, y, txt, style) => {
+            const t = this.add.text(x, y, txt, { fontFamily: 'monospace', ...style });
+            c.add(t);
+            return t;
+        };
+
+        addTxt(GW / 2, 215, 'CONTROLS', {
+            fontSize: '36px', color: '#FFD700', fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        const controls = [
+            ['↑',     'Accelerate'],
+            ['↓',     'Brake / Reverse'],
+            ['←  →',  'Steer'],
+            ['SPACE', 'Nitro Boost'],
+        ];
+        controls.forEach(([key, action], i) => {
+            const y = 310 + i * 64;
+            addTxt(GW / 2 - 20, y, key,    { fontSize: '26px', color: '#FFD700', fontStyle: 'bold' }).setOrigin(1, 0.5);
+            addTxt(GW / 2 + 10, y, action, { fontSize: '24px', color: '#ccc' }).setOrigin(0, 0.5);
+        });
+
+        addTxt(GW / 2, GH - 46, 'ESC  ·  BACK', { fontSize: '16px', color: '#555' }).setOrigin(0.5);
+        return c;
     }
 }
 
@@ -3973,7 +4211,7 @@ class TrackSelectScene extends Phaser.Scene {
         this.input.keyboard.on('keydown-DOWN',  () => this.move(COLS));
         this.input.keyboard.on('keydown-ENTER', () => this.confirm());
         this.input.keyboard.on('keydown-SPACE', () => this.confirm());
-        this.input.keyboard.on('keydown-ESC',   () => this.scene.start('TitleScene'));
+        this.input.keyboard.on('keydown-ESC',   () => this.scene.start('MainMenuScene'));
     }
 
     move(delta) {
@@ -4022,7 +4260,7 @@ const config = {
         // Works better for local file:// runs (e.g. opening index.html directly).
         imageLoadType: 'HTMLImageElement',
     },
-    scene: [BootScene, TitleScene, PlayerSelectScene, TrackSelectScene, RaceScene, ResultsScene, ShopScene],
+    scene: [BootScene, MainMenuScene, TitleScene, PlayerSelectScene, TrackSelectScene, RaceScene, ResultsScene, ShopScene],
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
