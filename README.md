@@ -17,7 +17,7 @@ Open `index.html` in a browser — no build step required.
 - Pickups, nitro boosts, and mud/terrain effects
 - Multiple race tracks with unique music
 
-## Tech
+## Credits
 
-- **Phaser 3** (via CDN)
-- Vanilla JS, no bundler
+- **Kenney** — game assets ([Racing Pack](https://kenney.nl/assets/racing-pack))
+- **MFCC** — music ([Pixabay](https://pixabay.com/users/28627740/))

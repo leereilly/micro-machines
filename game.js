@@ -1,5 +1,5 @@
 // ============================================================
-// IVAN "IRONMAN" STEWART'S SUPER OFF ROAD — Web Recreation
+// MICRO MACHINES — Web Recreation
 // Built with Phaser 3 · Procedural tracks + Kenney vehicle sprites
 // ============================================================
 
@@ -2368,7 +2368,7 @@ class TitleScene extends Phaser.Scene {
             }
         }
 
-        this.add.text(GW / 2, 150, 'SUPER OFF ROAD', {
+        this.add.text(GW / 2, 150, 'MICRO MACHINES', {
             fontSize: '60px', fontFamily: 'monospace', color: '#FFD700',
             fontStyle: 'bold', stroke: '#6B3410', strokeThickness: 8,
         }).setOrigin(0.5);
@@ -3681,7 +3681,7 @@ class ShopScene extends Phaser.Scene {
     create() {
         this.cameras.main.setBackgroundColor('#0d0d1a');
 
-        this.add.text(GW / 2, 45, "IRONMAN'S SPEED SHOP", {
+        this.add.text(GW / 2, 45, "SPEED SHOP", {
             fontSize: '34px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
         }).setOrigin(0.5);
 
