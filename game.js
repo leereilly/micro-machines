@@ -169,148 +169,156 @@ const TRACKS = [
         rw: ROAD_W - 2,
         mud: [{x:550,y:300,r:28},{x:160,y:540,r:24}],
     },
-    {   // 8 ── SAFARI RUSH
+    {   // 8 ── SAFARI RUSH — Monaco-inspired: tight hairpins, narrow, many direction changes
         name: 'SAFARI RUSH', theme: 'african',
         cp: [
-            {x:512,y:700},{x:760,y:720},{x:900,y:600},{x:940,y:430},
-            {x:870,y:260},{x:700,y:170},{x:530,y:235},{x:370,y:155},
-            {x:200,y:240},{x:100,y:410},{x:130,y:575},{x:285,y:655},
+            {x:512,y:678},{x:748,y:660},{x:888,y:540},{x:908,y:375},{x:835,y:242},
+            {x:665,y:172},{x:512,y:252},{x:368,y:172},{x:215,y:218},{x:135,y:358},
+            {x:172,y:518},{x:318,y:605},{x:322,y:498},{x:435,y:618},
         ],
-        rw: ROAD_W,
-        mud: [{x:700,y:600,r:35},{x:190,y:410,r:28}],
+        rw: ROAD_W - 6,
+        mud: [{x:875,y:378,r:22},{x:155,y:435,r:18}],
     },
-    {   // 9 ── DESERT MIRAGE
+    {   // 9 ── DESERT MIRAGE — Bahrain/Abu Dhabi inspired: long straights, sharp hairpins
         name: 'DESERT MIRAGE', theme: 'arabic',
         cp: [
-            {x:512,y:710},{x:740,y:700},{x:890,y:580},{x:930,y:400},
-            {x:860,y:240},{x:690,y:155},{x:510,y:205},{x:340,y:155},
-            {x:170,y:225},{x:90,y:380},{x:110,y:545},{x:255,y:670},
-            {x:400,y:710},
+            {x:512,y:685},{x:740,y:678},{x:890,y:598},{x:925,y:445},{x:875,y:295},
+            {x:700,y:212},{x:512,y:190},{x:325,y:212},{x:168,y:298},{x:125,y:452},
+            {x:188,y:578},{x:342,y:660},
         ],
         rw: ROAD_W,
-        mud: [{x:620,y:380,r:22},{x:300,y:500,r:18}],
+        mud: [{x:878,y:380,r:25},{x:145,y:455,r:22}],
     },
-    {   // 10 ── COPACABANA CRUNCH
+    {   // 10 ── COPACABANA CRUNCH — Interlagos inspired: counter-clockwise with S-curves
         name: 'COPACABANA CRUNCH', theme: 'brazil',
         cp: [
-            {x:400,y:720},{x:645,y:720},{x:855,y:660},{x:930,y:500},
-            {x:905,y:340},{x:755,y:220},{x:580,y:275},{x:425,y:215},
-            {x:255,y:160},{x:115,y:275},{x:90,y:450},{x:140,y:615},
-            {x:280,y:700},
+            {x:512,y:692},{x:295,y:672},{x:162,y:552},{x:148,y:398},{x:238,y:265},
+            {x:408,y:198},{x:578,y:235},{x:698,y:172},{x:875,y:248},{x:918,y:405},
+            {x:838,y:548},{x:668,y:658},
         ],
         rw: ROAD_W,
-        mud: [{x:500,y:490,r:25}],
+        mud: [{x:185,y:455,r:22},{x:892,y:420,r:18}],
     },
-    {   // 11 ── LONE STAR RALLY
+    {   // 11 ── LONE STAR RALLY — COTA inspired: big sweeping T1, tight S-curves
         name: 'LONE STAR RALLY', theme: 'country',
         cp: [
-            {x:512,y:710},{x:770,y:700},{x:920,y:600},{x:950,y:440},
-            {x:890,y:290},{x:740,y:195},{x:560,y:240},{x:390,y:180},
-            {x:220,y:250},{x:100,y:390},{x:110,y:560},{x:230,y:660},
-            {x:380,y:705},
+            {x:512,y:678},{x:758,y:655},{x:905,y:518},{x:882,y:358},{x:762,y:238},
+            {x:592,y:188},{x:448,y:232},{x:342,y:172},{x:228,y:232},{x:155,y:372},
+            {x:198,y:505},{x:345,y:582},{x:438,y:502},{x:352,y:645},
         ],
         rw: ROAD_W,
-        mud: [{x:700,y:290,r:28},{x:220,y:560,r:22}],
+        mud: [{x:462,y:232,r:18},{x:215,y:455,r:22}],
     },
-    {   // 12 ── JINGLE RALLY
+    {   // 12 ── JINGLE RALLY — Nürburgring inspired: very winding, many direction changes
         name: 'JINGLE RALLY', theme: 'christmas',
         cp: [
-            {x:512,y:700},{x:740,y:690},{x:900,y:595},{x:935,y:430},
-            {x:880,y:280},{x:720,y:190},{x:550,y:245},{x:388,y:185},
-            {x:218,y:265},{x:99,y:420},{x:118,y:580},{x:268,y:655},
-            {x:400,y:695},
+            {x:512,y:675},{x:718,y:645},{x:860,y:502},{x:798,y:348},{x:882,y:228},
+            {x:762,y:148},{x:608,y:172},{x:478,y:252},{x:348,y:165},{x:205,y:188},
+            {x:138,y:328},{x:222,y:458},{x:142,y:572},{x:275,y:648},{x:415,y:668},
         ],
         rw: ROAD_W,
-        mud: [{x:400,y:280,r:20},{x:150,y:540,r:25}],
+        mud: [{x:492,y:252,r:18},{x:212,y:458,r:20}],
     },
-    {   // 13 ── CURRY CORNER
+    {   // 13 ── CURRY CORNER — Indian city circuit with tunnel through building
         name: 'CURRY CORNER', theme: 'indian',
         cp: [
-            {x:512,y:705},{x:760,y:700},{x:912,y:618},{x:942,y:458},
-            {x:882,y:308},{x:722,y:215},{x:548,y:268},{x:382,y:198},
-            {x:200,y:268},{x:100,y:430},{x:130,y:580},{x:292,y:655},
-            {x:432,y:700},
+            {x:512,y:680},{x:738,y:658},{x:878,y:528},{x:848,y:368},{x:722,y:258},
+            {x:598,y:205},{x:448,y:195},{x:302,y:232},{x:195,y:348},{x:175,y:498},
+            {x:275,y:612},{x:428,y:658},
         ],
+        tunnels: [{frac: 0.40, len: 22}],
         rw: ROAD_W,
-        mud: [{x:600,y:550,r:25},{x:248,y:348,r:20}],
+        mud: [{x:598,y:358,r:22},{x:218,y:475,r:18}],
     },
-    {   // 14 ── BELLA STRADA
+    {   // 14 ── BELLA STRADA — Monza inspired: fast main straight + tight Ascari chicane
         name: 'BELLA STRADA', theme: 'italian',
         cp: [
-            {x:512,y:700},{x:748,y:708},{x:898,y:628},{x:928,y:468},
-            {x:868,y:318},{x:708,y:218},{x:538,y:278},{x:378,y:208},
-            {x:208,y:278},{x:100,y:420},{x:122,y:580},{x:272,y:655},
-            {x:418,y:698},
+            {x:512,y:678},{x:775,y:665},{x:912,y:548},{x:882,y:385},{x:735,y:258},
+            {x:512,y:228},{x:298,y:258},{x:192,y:348},{x:268,y:442},{x:182,y:542},
+            {x:272,y:642},{x:412,y:678},
         ],
         rw: ROAD_W,
-        mud: [{x:858,y:468,r:20},{x:208,y:420,r:22}],
+        mud: [{x:885,y:428,r:22},{x:212,y:448,r:18}],
     },
-    {   // 15 ── LOOSE SLOPS
+    {   // 15 ── LOOSE SLOPS — Las Vegas inspired: blocky 90° street corners, inner chicane
         name: 'LOOSE SLOPS', theme: 'casino',
         cp: [
-            {x:512,y:700},{x:760,y:710},{x:902,y:618},{x:942,y:458},
-            {x:890,y:308},{x:740,y:218},{x:558,y:268},{x:408,y:198},
-            {x:238,y:263},{x:108,y:408},{x:122,y:563},{x:278,y:645},
-            {x:418,y:692},
+            {x:512,y:678},{x:765,y:678},{x:918,y:562},{x:918,y:375},{x:808,y:248},
+            {x:625,y:232},{x:512,y:328},{x:408,y:232},{x:238,y:248},{x:128,y:375},
+            {x:128,y:565},{x:262,y:678},
         ],
         rw: ROAD_W,
-        mud: [{x:700,y:408,r:30},{x:198,y:500,r:25}],
-        casinoDice: [],   // filled below for runtime physics
+        mud: [{x:700,y:388,r:28},{x:198,y:418,r:22}],
+        casinoDice: [],
     },
-    {   // 16 ── SHAMROCK SPRINT
+    {   // 16 ── SHAMROCK SPRINT — Irish rolling hills with tunnel through hilltop
         name: 'SHAMROCK SPRINT', theme: 'irish',
         cp: [
-            {x:512,y:695},{x:748,y:702},{x:893,y:622},{x:932,y:462},
-            {x:878,y:298},{x:718,y:198},{x:542,y:258},{x:388,y:188},
-            {x:218,y:268},{x:100,y:418},{x:128,y:572},{x:282,y:648},
-            {x:428,y:690},
+            {x:512,y:680},{x:732,y:652},{x:872,y:518},{x:898,y:358},{x:802,y:228},
+            {x:642,y:158},{x:492,y:148},{x:345,y:188},{x:208,y:298},{x:152,y:448},
+            {x:208,y:578},{x:358,y:655},
         ],
+        tunnels: [{frac: 0.38, len: 22}],
         rw: ROAD_W,
-        mud: [{x:540,y:398,r:28},{x:178,y:278,r:22}],
+        mud: [{x:542,y:388,r:25},{x:192,y:508,r:22}],
     },
-    {   // 17 ── EL GRANDE LOOP
+    {   // 17 ── EL GRANDE LOOP — Mexico City inspired: outer loop + inner stadium section with tunnel
         name: 'EL GRANDE LOOP', theme: 'mexican',
         cp: [
-            {x:512,y:720},{x:760,y:710},{x:920,y:618},{x:945,y:452},
-            {x:884,y:292},{x:722,y:202},{x:548,y:262},{x:382,y:192},
-            {x:212,y:252},{x:100,y:398},{x:118,y:558},{x:258,y:642},
-            {x:402,y:698},
+            {x:512,y:690},{x:748,y:668},{x:892,y:538},{x:898,y:372},{x:758,y:252},
+            {x:518,y:215},{x:295,y:255},{x:178,y:378},{x:205,y:535},{x:378,y:625},
+            {x:518,y:565},{x:658,y:625},{x:755,y:545},
         ],
+        tunnels: [{frac: 0.69, len: 18}],
         rw: ROAD_W,
-        mud: [{x:758,y:292,r:30},{x:258,y:452,r:25}],
+        mud: [{x:752,y:455,r:28},{x:250,y:455,r:24}],
     },
-    {   // 18 ── IRIE CIRCUIT
+    {   // 18 ── IRIE CIRCUIT — Reggae / Jamaica: winding circuit with two water-jump ramps
         name: 'IRIE CIRCUIT', theme: 'reggae',
         cp: [
-            {x:512,y:710},{x:754,y:700},{x:903,y:612},{x:938,y:452},
-            {x:873,y:302},{x:713,y:212},{x:538,y:268},{x:378,y:198},
-            {x:208,y:272},{x:103,y:422},{x:122,y:577},{x:278,y:648},
-            {x:418,y:698},
+            {x:512,y:685},{x:735,y:655},{x:882,y:518},{x:858,y:345},{x:718,y:222},
+            {x:512,y:185},{x:308,y:238},{x:182,y:365},{x:162,y:532},{x:295,y:648},
+            {x:458,y:648},
+        ],
+        ramps: [
+            {x:618, y:202, a: Math.PI, cd: 0},  // ramp 1: top section, car heading left
+            {x:318, y:648, a: 0,        cd: 0},  // ramp 2: bottom, car heading right
+        ],
+        water: [
+            {x:512, y:188, rw:130, rh:30},  // water channel 1 (horizontal bridge at top)
+            {x:408, y:648, rw:110, rh:28},  // water channel 2 (horizontal bridge at bottom)
         ],
         rw: ROAD_W,
-        mud: [{x:798,y:452,r:22},{x:178,y:522,r:20}],
+        mud: [{x:718,y:348,r:22},{x:182,y:455,r:18}],
     },
-    {   // 19 ── OLÉ DASH
+    {   // 19 ── OLÉ DASH — Spain: arena-edge circuit with two water-jump ramps
         name: 'OL\u00c9 DASH', theme: 'spanish',
         cp: [
-            {x:512,y:700},{x:748,y:698},{x:898,y:618},{x:938,y:458},
-            {x:878,y:308},{x:718,y:208},{x:538,y:263},{x:382,y:193},
-            {x:212,y:253},{x:103,y:398},{x:128,y:558},{x:278,y:643},
-            {x:418,y:693},
+            {x:512,y:682},{x:762,y:658},{x:898,y:528},{x:908,y:365},{x:832,y:248},
+            {x:658,y:188},{x:512,y:185},{x:368,y:192},{x:215,y:298},{x:158,y:448},
+            {x:218,y:582},{x:382,y:662},{x:452,y:575},
+        ],
+        ramps: [
+            {x:602, y:186, a: Math.PI, cd: 0},  // ramp 1: top straight, car heading left
+            {x:398, y:646, a: -0.9,     cd: 0},  // ramp 2: bottom-left hairpin, car heading up-right
+        ],
+        water: [
+            {x:490, y:185, rw:120, rh:28},   // water 1 (top straight bridge)
+            {x:438, y:608, rw:110, rh:28},   // water 2 (after bottom-left ramp)
         ],
         rw: ROAD_W,
-        mud: [{x:718,y:458,r:25},{x:278,y:308,r:20}],
+        mud: [{x:418,y:368,r:22},{x:168,y:515,r:18}],
     },
-    {   // 20 ── JUNGLE JAMBOREE
+    {   // 20 ── JUNGLE JAMBOREE — Sepang/Singapore inspired: very winding + jungle tunnel
         name: 'JUNGLE JAMBOREE', theme: 'jungle',
         cp: [
-            {x:512,y:710},{x:758,y:700},{x:908,y:612},{x:943,y:452},
-            {x:878,y:298},{x:718,y:208},{x:543,y:263},{x:382,y:193},
-            {x:212,y:258},{x:98,y:402},{x:122,y:568},{x:278,y:643},
-            {x:422,y:698},
+            {x:512,y:680},{x:718,y:655},{x:862,y:512},{x:848,y:342},{x:728,y:218},
+            {x:562,y:182},{x:412,y:218},{x:292,y:178},{x:175,y:285},{x:215,y:432},
+            {x:162,y:558},{x:262,y:655},{x:415,y:652},{x:508,y:548},{x:418,y:658},
         ],
+        tunnels: [{frac: 0.35, len: 24}],
         rw: ROAD_W,
-        mud: [{x:458,y:348,r:35},{x:698,y:578,r:30}],
+        mud: [{x:448,y:355,r:28},{x:698,y:548,r:25}],
     },
     {
         // ── SYNTHWAVE — giant multi-screen track ──
@@ -1127,6 +1135,95 @@ class BootScene extends Phaser.Scene {
         this.textures.addCanvas('pk_nitro', cv);
     }
 
+    // ── Shared track rendering helpers (visual canvas) ────────────────────
+    // Draws dark tunnel bodies + concrete portal arches for any track that
+    // has a t.tunnels array (already converted from frac → startI).
+    drawTrackTunnels(vx, t, wp) {
+        if (!t.tunnels || !t.tunnels.length) return;
+        const halfW = t.rw / 2 + 6;
+        t.tunnels.forEach(tu => {
+            // dark outer shell
+            vx.save();
+            vx.strokeStyle = 'rgba(8,8,14,0.90)';
+            vx.lineWidth = t.rw + 14;
+            vx.lineCap = 'butt'; vx.lineJoin = 'round';
+            vx.beginPath();
+            for (let i = 0; i <= tu.len; i++) {
+                const pp = wp[(tu.startI + i) % wp.length];
+                if (i === 0) vx.moveTo(pp.x, pp.y); else vx.lineTo(pp.x, pp.y);
+            }
+            vx.stroke();
+            // dark road surface inside tunnel
+            vx.strokeStyle = 'rgba(28,28,38,0.96)';
+            vx.lineWidth = t.rw - 4;
+            vx.beginPath();
+            for (let i = 0; i <= tu.len; i++) {
+                const pp = wp[(tu.startI + i) % wp.length];
+                if (i === 0) vx.moveTo(pp.x, pp.y); else vx.lineTo(pp.x, pp.y);
+            }
+            vx.stroke();
+            vx.restore();
+            // portal arches at entry and exit
+            const p0  = wp[tu.startI % wp.length];
+            const p1  = wp[(tu.startI + 1) % wp.length];
+            const pE  = wp[(tu.startI + tu.len) % wp.length];
+            const pEn = wp[(tu.startI + tu.len + 1) % wp.length];
+            [[p0, p1, false], [pE, pEn, true]].forEach(([pt, ptn, flip]) => {
+                const ang = Math.atan2(ptn.y - pt.y, ptn.x - pt.x) + (flip ? Math.PI : 0);
+                vx.save();
+                vx.translate(pt.x, pt.y); vx.rotate(ang);
+                vx.fillStyle = '#7a7a86'; vx.fillRect(-10, -halfW - 18, 20, halfW * 2 + 36);
+                vx.fillStyle = '#1a1a24'; vx.fillRect(-6, -halfW, 12, halfW * 2);
+                vx.fillStyle = '#ffe060';
+                vx.beginPath(); vx.arc(0, -halfW - 8, 4, 0, Math.PI * 2); vx.fill();
+                vx.restore();
+            });
+        });
+    }
+
+    // Draws yellow/black striped ramp markers on the road.
+    drawTrackRamps(vx, t) {
+        if (!t.ramps || !t.ramps.length) return;
+        const hw = t.rw / 2 - 4;
+        t.ramps.forEach(r => {
+            vx.save();
+            vx.translate(r.x, r.y); vx.rotate(r.a);
+            for (let k = -3; k <= 3; k++) {
+                vx.fillStyle = k % 2 === 0 ? '#1a1a1a' : '#ffdd22';
+                vx.fillRect(k * 8 - 4, -hw, 8, hw * 2);
+            }
+            vx.fillStyle = 'rgba(255,255,255,0.45)';
+            vx.fillRect(20, -hw, 3, hw * 2);
+            vx.restore();
+        });
+    }
+
+    // Draws blue water channel bodies (called BEFORE road so road bridges over water).
+    drawTrackWater(vx, waterArr) {
+        if (!waterArr || !waterArr.length) return;
+        waterArr.forEach(w => {
+            const wg = vx.createRadialGradient(w.x, w.y, 0, w.x, w.y, Math.max(w.rw, w.rh) / 2);
+            wg.addColorStop(0, 'rgba(38,128,245,0.96)');
+            wg.addColorStop(0.6, 'rgba(18,88,205,0.92)');
+            wg.addColorStop(1, 'rgba(8,55,155,0.72)');
+            vx.fillStyle = wg;
+            vx.beginPath();
+            vx.ellipse(w.x, w.y, w.rw / 2, w.rh / 2, 0, 0, Math.PI * 2);
+            vx.fill();
+            vx.strokeStyle = 'rgba(175,228,255,0.42)'; vx.lineWidth = 1.5;
+            for (let i = -1; i <= 1; i++) {
+                vx.beginPath();
+                vx.moveTo(w.x - w.rw * 0.38, w.y + i * w.rh * 0.22);
+                vx.bezierCurveTo(
+                    w.x - w.rw * 0.1, w.y + i * w.rh * 0.22 - 3,
+                    w.x + w.rw * 0.1, w.y + i * w.rh * 0.22 + 3,
+                    w.x + w.rw * 0.38, w.y + i * w.rh * 0.22
+                );
+                vx.stroke();
+            }
+        });
+    }
+
     genTracks() {
         // Seeded random for consistent track features
         let seed = 42;
@@ -1142,6 +1239,14 @@ class BootScene extends Phaser.Scene {
             const TW = t.W, TH = t.H;
             const wp = spline(t.cp, 20);
             t.wp = wp;
+
+            // Convert fractional tunnel positions → waypoint indices for hand-crafted tracks
+            if (t.tunnels && t.tunnels.length && typeof t.tunnels[0].frac === 'number') {
+                t.tunnels = t.tunnels.map(tu => ({
+                    startI: Math.round(tu.frac * wp.length) % wp.length,
+                    len: tu.len,
+                }));
+            }
 
             // procedural extras that depend on the splined waypoints
             if (t.desk) generateDeskExtras(t, wp);
@@ -2119,6 +2224,7 @@ class BootScene extends Phaser.Scene {
                     vx.lineTo(rgStarCx+Math.cos(a2)*rgStarR,rgStarCy+Math.sin(a2)*rgStarR); vx.stroke();
                 }
                 // road — black with reggae yellow dashes
+                if (t.water) this.drawTrackWater(vx, t.water);
                 vx.strokeStyle='#333'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
                 drawPath(vx,wp); vx.stroke();
                 vx.strokeStyle='#111'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
@@ -2162,6 +2268,7 @@ class BootScene extends Phaser.Scene {
                 vx.fillStyle='#cc2200'; vx.fillRect(0,0,60,80);
                 vx.fillStyle='#ffcc00'; vx.fillRect(0,0,8,80); vx.fillRect(52,0,8,80);
                 vx.restore();
+                if (t.water) this.drawTrackWater(vx, t.water);
                 vx.strokeStyle='#d0a060'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
                 drawPath(vx,wp); vx.stroke();
                 vx.strokeStyle='#b08040'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
@@ -2254,6 +2361,10 @@ class BootScene extends Phaser.Scene {
                     vx.fillStyle = g; vx.beginPath(); vx.arc(m.x, m.y, m.r, 0, Math.PI * 2); vx.fill();
                 });
             }
+
+            // Post-road overlays: tunnels and ramp markers (all hand-crafted tracks)
+            this.drawTrackTunnels(vx, t, wp);
+            this.drawTrackRamps(vx, t);
 
             // start / finish line
             const s0 = wp[0], s1 = wp[1];
@@ -2815,7 +2926,7 @@ class RaceScene extends Phaser.Scene {
         if (this.soccerBalls.length > 0 || this.subbuteo) this.updateSoccerProps(dt);
         if (this.casinoDice.length > 0) this.updateCasinoDice(dt);
         if (this.ghost) this.updateGhost(dt, delta);
-        if (this.td.boosts && this.td.boosts.length) this.updateDeskHazards(dt);
+        if ((this.td.boosts && this.td.boosts.length) || (this.td.ramps && this.td.ramps.length)) this.updateDeskHazards(dt);
         this.calcPositions();
         this.drawHUD();
 
@@ -3023,7 +3134,7 @@ class RaceScene extends Phaser.Scene {
         this.trucks.forEach(t => {
             if (t.fin || t.frozenTimer > 0) return;
             // Boost chevrons (">>" markers on the road)
-            this.td.boosts.forEach((b, i) => {
+            (this.td.boosts || []).forEach((b, i) => {
                 const st = this.boostState[i];
                 if (st.cd > 0) return;
                 if (Math.hypot(t.x - b.x, t.y - b.y) < BOOST_R) {
@@ -3042,7 +3153,7 @@ class RaceScene extends Phaser.Scene {
                 }
             });
             // Ramps — burst forward + sprite "airtime" scale bump
-            this.td.ramps.forEach((r, i) => {
+            (this.td.ramps || []).forEach((r, i) => {
                 const st = this.rampState[i];
                 if (st.cd > 0) return;
                 if (Math.hypot(t.x - r.x, t.y - r.y) < RAMP_R) {
