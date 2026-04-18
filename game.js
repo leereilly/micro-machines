@@ -6,7 +6,7 @@
 // ── CONSTANTS ───────────────────────────────────────────────
 const GW = 1024;
 const GH = 768;
-const TOTAL_LAPS = 4;
+const TOTAL_LAPS = 1; // TODO: restore to 4
 const TS = 12;                       // truck half-size
 const ROT_FRAMES = 24;              // rotation angles per truck
 const ROAD_W = 50;                  // default road width
@@ -359,6 +359,7 @@ function resetGameState() {
     return {
         money: 200000, tires: 0, shocks: 0, acceleration: 0,
         topSpeed: 0, nitros: 3, raceNum: 0, playerIdx: 0,
+        highestUnlocked: 0,
     };
 }
 
@@ -1070,9 +1071,6 @@ class BootScene extends Phaser.Scene {
         this.load.image('avatar_hubot', 'players/hubot.png');
         this.load.image('avatar_mona', 'players/mona.png');
 
-        TRACK_MUSIC.forEach((path, i) => {
-            this.load.audio('music_' + i, path);
-        });
     }
 
     create() {
@@ -2495,7 +2493,7 @@ class TitleScene extends Phaser.Scene {
             ['← →  Steer', '#aaa', '18px'],
             ['SPACE  Nitro Boost', '#ff6600', '18px'],
             ['', '', '10px'],
-            ['Race 4 laps · Earn prize money', '#888', '16px'],
+            ['Race 1 lap · Earn prize money', '#888', '16px'],
             ['Upgrade your truck at the Speed Shop', '#888', '16px'],
         ];
         let ly = 320;
@@ -2508,10 +2506,6 @@ class TitleScene extends Phaser.Scene {
             fontSize: '26px', fontFamily: 'monospace', color: '#fff',
         }).setOrigin(0.5);
         this.tweens.add({ targets: pt, alpha: 0.2, duration: 600, yoyo: true, repeat: -1 });
-
-        const mapHint = this.add.text(GW / 2, 665, 'Type *NN to jump to a track  (e.g. *00\u202f=\u202fSIDEWINDER, *22\u202f=\u202fDESK CHAOS)', {
-            fontSize: '14px', fontFamily: 'monospace', color: '#555',
-        }).setOrigin(0.5);
 
         // track display — updated as player types
         const mapSelect = this.add.text(GW / 2, 700, '', {
@@ -2547,6 +2541,7 @@ class TitleScene extends Phaser.Scene {
                     const idx = Math.min(parseInt(starBuf, 10), TRACKS.length - 1);
                     gs = resetGameState();
                     gs.raceNum = idx;
+                    gs.highestUnlocked = idx;
                     flushStar();
                     this.scene.start('PlayerSelectScene');
                 } else {
@@ -2656,7 +2651,7 @@ class PlayerSelectScene extends Phaser.Scene {
         gs.playerIdx = this.sel;
         // brief flash effect
         this.cameras.main.flash(300, 255, 215, 0);
-        this.time.delayedCall(300, () => this.scene.start('RaceScene'));
+        this.time.delayedCall(300, () => this.scene.start('TrackSelectScene'));
     }
 }
 
@@ -2678,11 +2673,21 @@ class RaceScene extends Phaser.Scene {
         // camera bounds & follow for multi-screen tracks
         this.cameras.main.setBounds(0, 0, TW, TH);
 
-        // music: stop any previous track, play the one for this race
+        // music: stop any previous track, load + play current, then prefetch next in background
         this.sound.stopAll();
         const musicKey = 'music_' + (gs.raceNum % TRACK_MUSIC.length);
+        const playCurrentMusic = () => {
+            if (this.cache.audio.exists(musicKey)) {
+                this.sound.play(musicKey, { loop: true, volume: 0.5 });
+            }
+            this.prefetchNextMusic();
+        };
         if (this.cache.audio.exists(musicKey)) {
-            this.sound.play(musicKey, { loop: true, volume: 0.5 });
+            playCurrentMusic();
+        } else {
+            this.load.audio(musicKey, TRACK_MUSIC[gs.raceNum % TRACK_MUSIC.length]);
+            this.load.once('complete', playCurrentMusic);
+            this.load.start();
         }
 
         // create trucks
@@ -2852,7 +2857,7 @@ class RaceScene extends Phaser.Scene {
         const bar = this.add.rectangle(GW / 2, 22, GW, 44, 0x111111, 0.88).setDepth(50).setScrollFactor(0);
         const s = { fontSize: '15px', fontFamily: 'monospace', color: '#fff' };
         this.hPos = this.add.text(16, 8, 'POS: 1st', s).setDepth(51).setScrollFactor(0);
-        this.hLap = this.add.text(150, 8, 'LAP: 1/4', s).setDepth(51).setScrollFactor(0);
+        this.hLap = this.add.text(150, 8, 'LAP: 1/1', s).setDepth(51).setScrollFactor(0);
         this.hMon = this.add.text(300, 8, '$200,000', { ...s, color: '#FFD700' }).setDepth(51).setScrollFactor(0);
         this.hNit = this.add.text(480, 8, 'NITRO: 3', { ...s, color: '#ff6600' }).setDepth(51).setScrollFactor(0);
         this.hRce = this.add.text(640, 8, `RACE ${gs.raceNum + 1}`, { ...s, color: '#aaa' }).setDepth(51).setScrollFactor(0);
@@ -3718,6 +3723,15 @@ class RaceScene extends Phaser.Scene {
         }
     }
 
+    prefetchNextMusic() {
+        const nextIdx = (gs.raceNum + 1) % TRACK_MUSIC.length;
+        const nextKey = 'music_' + nextIdx;
+        if (!this.cache.audio.exists(nextKey)) {
+            this.load.audio(nextKey, TRACK_MUSIC[nextIdx]);
+            this.load.start();
+        }
+    }
+
     endRace() {
         if (this.over) return;
         this.over = true;
@@ -3728,6 +3742,7 @@ class RaceScene extends Phaser.Scene {
         const prize = PRIZES[Math.min(pp, 3)];
         gs.money += prize;
         gs.raceNum++;
+        gs.highestUnlocked = Math.min(Math.max(gs.highestUnlocked || 0, gs.raceNum), TRACKS.length - 1);
         gs.lastRes = {
             track: this.td.name, race: gs.raceNum,
             order: this.finOrder.map(t => ({ name: t.name, imgKey: t.imgKey, isP: t.isP, pos: t.finPos })),
@@ -3874,7 +3889,126 @@ class ShopScene extends Phaser.Scene {
         }
     }
 
-    race() { this.scene.start('RaceScene'); }
+    race() { this.scene.start('TrackSelectScene'); }
+}
+
+// ── TRACK SELECT SCENE ──────────────────────────────────────
+class TrackSelectScene extends Phaser.Scene {
+    constructor() { super('TrackSelectScene'); }
+
+    create() {
+        this.cameras.main.setBackgroundColor('#000');
+
+        const COLS = 7;
+        const BOX_W = 90, BOX_H = 70;
+        const GAP_X = 16, GAP_Y = 18;
+        const CELL_W = BOX_W + GAP_X;
+        const CELL_H = BOX_H + GAP_Y;
+        const numTracks = TRACKS.length;
+        const numRows = Math.ceil(numTracks / COLS);
+        const gridW = COLS * BOX_W + (COLS - 1) * GAP_X;
+        const startX = (GW - gridW) / 2;
+        const startY = 140;
+
+        this._cols = COLS; this._boxW = BOX_W; this._boxH = BOX_H;
+        this._cellW = CELL_W; this._cellH = CELL_H;
+
+        this.add.text(GW / 2, 58, 'SELECT TRACK', {
+            fontSize: '36px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        const highestUnlocked = gs.highestUnlocked || 0;
+        this.sel = Math.min(gs.raceNum % numTracks, highestUnlocked);
+        this.boxes = [];
+
+        for (let i = 0; i < numTracks; i++) {
+            const col = i % COLS;
+            const row = Math.floor(i / COLS);
+            const cx = startX + col * CELL_W + BOX_W / 2;
+            const cy = startY + row * CELL_H + BOX_H / 2;
+            const unlocked = i <= highestUnlocked;
+
+            const g = this.add.graphics();
+            g.fillStyle(unlocked ? 0x111111 : 0x080808, 1);
+            g.fillRect(cx - BOX_W / 2, cy - BOX_H / 2, BOX_W, BOX_H);
+            g.lineStyle(2, unlocked ? 0xffffff : 0x333333, 1);
+            g.strokeRect(cx - BOX_W / 2, cy - BOX_H / 2, BOX_W, BOX_H);
+
+            this.add.text(cx, cy, String(i + 1), {
+                fontSize: '26px', fontFamily: 'monospace',
+                color: unlocked ? '#ffffff' : '#222222', fontStyle: 'bold',
+            }).setOrigin(0.5);
+
+            if (!unlocked) {
+                this.add.text(cx + BOX_W / 2 - 13, cy - BOX_H / 2 + 8, '🔒', {
+                    fontSize: '13px',
+                }).setOrigin(0.5);
+            }
+
+            if (unlocked) {
+                const zone = this.add.zone(cx, cy, BOX_W, BOX_H).setInteractive({ useHandCursor: true });
+                zone.on('pointerover', () => { this.sel = i; this.updateHighlight(); this.updateTrackName(); });
+                zone.on('pointerdown', () => { this.sel = i; this.confirm(); });
+            }
+
+            this.boxes.push({ cx, cy, unlocked });
+        }
+
+        this.selGraphics = this.add.graphics();
+        this.updateHighlight();
+
+        const nameY = startY + numRows * CELL_H - GAP_Y + 30;
+        this.trackNameTxt = this.add.text(GW / 2, nameY, '', {
+            fontSize: '20px', fontFamily: 'monospace', color: '#FFD700',
+        }).setOrigin(0.5);
+        this.updateTrackName();
+
+        this.add.text(GW / 2, GH - 36, '← → ↑ ↓  navigate   ENTER  race   ESC  back', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#444',
+        }).setOrigin(0.5);
+
+        this.input.keyboard.on('keydown-LEFT',  () => this.move(-1));
+        this.input.keyboard.on('keydown-RIGHT', () => this.move(1));
+        this.input.keyboard.on('keydown-UP',    () => this.move(-COLS));
+        this.input.keyboard.on('keydown-DOWN',  () => this.move(COLS));
+        this.input.keyboard.on('keydown-ENTER', () => this.confirm());
+        this.input.keyboard.on('keydown-SPACE', () => this.confirm());
+        this.input.keyboard.on('keydown-ESC',   () => this.scene.start('TitleScene'));
+    }
+
+    move(delta) {
+        const max = Math.min(gs.highestUnlocked || 0, TRACKS.length - 1);
+        this.sel = Phaser.Math.Clamp(this.sel + delta, 0, max);
+        this.updateHighlight();
+        this.updateTrackName();
+    }
+
+    updateHighlight() {
+        this.selGraphics.clear();
+        const box = this.boxes[this.sel];
+        if (!box) return;
+        this.selGraphics.lineStyle(3, 0xFFD700, 1);
+        this.selGraphics.strokeRect(
+            box.cx - this._boxW / 2 - 3,
+            box.cy - this._boxH / 2 - 3,
+            this._boxW + 6,
+            this._boxH + 6
+        );
+    }
+
+    updateTrackName() {
+        if (this.trackNameTxt && TRACKS[this.sel]) {
+            this.trackNameTxt.setText(TRACKS[this.sel].name);
+        }
+    }
+
+    confirm() {
+        const max = gs.highestUnlocked || 0;
+        if (this.sel > max) return;
+        gs.raceNum = this.sel;
+        this.cameras.main.flash(200, 255, 215, 0);
+        this.time.delayedCall(200, () => this.scene.start('RaceScene'));
+    }
 }
 
 // ── PHASER CONFIG ───────────────────────────────────────────
@@ -3888,7 +4022,7 @@ const config = {
         // Works better for local file:// runs (e.g. opening index.html directly).
         imageLoadType: 'HTMLImageElement',
     },
-    scene: [BootScene, TitleScene, PlayerSelectScene, RaceScene, ResultsScene, ShopScene],
+    scene: [BootScene, TitleScene, PlayerSelectScene, TrackSelectScene, RaceScene, ResultsScene, ShopScene],
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
