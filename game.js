@@ -31,15 +31,28 @@ const TKEYS = ['player', 'ai1', 'ai2', 'ai3'];
 const PRIZES = [100000, 90000, 80000, 70000];
 
 const TRACK_MUSIC = [
-    'music/mfcc-racing-speed-action-music-115041.mp3',
-    'music/mfcc-speed-speed-racing-cycling-music-257904.mp3',
-    'music/mfcc-asian-background-music-1-min-25-sec-371823.mp3',
-    'music/mfcc-speed-action-racing-music-120442.mp3',
-    'music/mfcc-african-background-music-372732.mp3',
-    'music/mfcc-sports-football-soccer-music-414731.mp3',
-    'music/mfcc-speed-racing-action-music-115039.mp3',
-    'music/mfcc-halloween-background-music-428574.mp3',
-    'music/mfcc-speed-action-racing-music-120442.mp3', // synthwave reuse
+    'music/mfcc-racing-speed-action-music-115041.mp3',                                           // 0  SIDEWINDER
+    'music/mfcc-speed-speed-racing-cycling-music-257904.mp3',                                    // 1  FANDANGO
+    'music/mfcc-asian-background-music-1-min-25-sec-371823.mp3',                                 // 2  WIPEOUT
+    'music/mfcc-speed-action-racing-music-120442.mp3',                                           // 3  BLASTER
+    'music/mfcc-african-background-music-372732.mp3',                                            // 4  HUEVOS GRANDE
+    'music/mfcc-sports-football-soccer-music-414731.mp3',                                        // 5  CLIFFHANGER
+    'music/mfcc-speed-racing-action-music-115039.mp3',                                           // 6  BIG DUKES
+    'music/mfcc-halloween-background-music-428574.mp3',                                          // 7  HURRICANE GULCH
+    'music/mfcc-african-background-music-372732 (1).mp3',                                        // 8  SAFARI RUSH
+    'music/mfcc-arabic-islamic-middle-east-music-372733.mp3',                                    // 9  DESERT MIRAGE
+    'music/mfcc-brazil-music-festival-football-rio-brazilian-background-274292.mp3',             // 10 COPACABANA CRUNCH
+    'music/mfcc-country-country-texas-cowboy-music-322875.mp3',                                  // 11 LONE STAR RALLY
+    'music/mfcc-happy-christmas-music-winter-holidays-celebration-background-theme-269352.mp3',  // 12 JINGLE RALLY
+    'music/mfcc-indian-bollywood-diwali-music-306679.mp3',                                       // 13 CURRY CORNER
+    'music/mfcc-italian-italy-tarantella-music-321645.mp3',                                      // 14 BELLA STRADA
+    'music/mfcc-jazz-music-casino-poker-roulette-las-vegas-background-intro-theme-287498.mp3',   // 15 LOOSE SLOPS
+    'music/mfcc-medieval-irish-celtic-ireland-music-318197.mp3',                                 // 16 SHAMROCK SPRINT
+    'music/mfcc-mexican-mexican-mexico-mariachi-music-290633.mp3',                               // 17 EL GRANDE LOOP
+    'music/mfcc-reggae-reggaeton-jamaican-music-326054.mp3',                                     // 18 IRIE CIRCUIT
+    'music/mfcc-spanish-spanish-spain-music-373166.mp3',                                         // 19 OLÉ DASH
+    'music/mfcc-wildlife-jungle-forest-background-music-263783.mp3',                             // 20 JUNGLE JAMBOREE
+    'music/mfcc-speed-action-racing-music-120442.mp3',                                           // 21 NEON DRIVE (synthwave reuse)
 ];
 
 // Synthwave track is larger than screen — world dimensions
@@ -155,6 +168,149 @@ const TRACKS = [
         ],
         rw: ROAD_W - 2,
         mud: [{x:550,y:300,r:28},{x:160,y:540,r:24}],
+    },
+    {   // 8 ── SAFARI RUSH
+        name: 'SAFARI RUSH', theme: 'african',
+        cp: [
+            {x:512,y:700},{x:760,y:720},{x:900,y:600},{x:940,y:430},
+            {x:870,y:260},{x:700,y:170},{x:530,y:235},{x:370,y:155},
+            {x:200,y:240},{x:100,y:410},{x:130,y:575},{x:285,y:655},
+        ],
+        rw: ROAD_W,
+        mud: [{x:700,y:600,r:35},{x:190,y:410,r:28}],
+    },
+    {   // 9 ── DESERT MIRAGE
+        name: 'DESERT MIRAGE', theme: 'arabic',
+        cp: [
+            {x:512,y:710},{x:740,y:700},{x:890,y:580},{x:930,y:400},
+            {x:860,y:240},{x:690,y:155},{x:510,y:205},{x:340,y:155},
+            {x:170,y:225},{x:90,y:380},{x:110,y:545},{x:255,y:670},
+            {x:400,y:710},
+        ],
+        rw: ROAD_W,
+        mud: [{x:620,y:380,r:22},{x:300,y:500,r:18}],
+    },
+    {   // 10 ── COPACABANA CRUNCH
+        name: 'COPACABANA CRUNCH', theme: 'brazil',
+        cp: [
+            {x:400,y:720},{x:645,y:720},{x:855,y:660},{x:930,y:500},
+            {x:905,y:340},{x:755,y:220},{x:580,y:275},{x:425,y:215},
+            {x:255,y:160},{x:115,y:275},{x:90,y:450},{x:140,y:615},
+            {x:280,y:700},
+        ],
+        rw: ROAD_W,
+        mud: [{x:500,y:490,r:25}],
+    },
+    {   // 11 ── LONE STAR RALLY
+        name: 'LONE STAR RALLY', theme: 'country',
+        cp: [
+            {x:512,y:710},{x:770,y:700},{x:920,y:600},{x:950,y:440},
+            {x:890,y:290},{x:740,y:195},{x:560,y:240},{x:390,y:180},
+            {x:220,y:250},{x:100,y:390},{x:110,y:560},{x:230,y:660},
+            {x:380,y:705},
+        ],
+        rw: ROAD_W,
+        mud: [{x:700,y:290,r:28},{x:220,y:560,r:22}],
+    },
+    {   // 12 ── JINGLE RALLY
+        name: 'JINGLE RALLY', theme: 'christmas',
+        cp: [
+            {x:512,y:700},{x:740,y:690},{x:900,y:595},{x:935,y:430},
+            {x:880,y:280},{x:720,y:190},{x:550,y:245},{x:388,y:185},
+            {x:218,y:265},{x:99,y:420},{x:118,y:580},{x:268,y:655},
+            {x:400,y:695},
+        ],
+        rw: ROAD_W,
+        mud: [{x:400,y:280,r:20},{x:150,y:540,r:25}],
+    },
+    {   // 13 ── CURRY CORNER
+        name: 'CURRY CORNER', theme: 'indian',
+        cp: [
+            {x:512,y:705},{x:760,y:700},{x:912,y:618},{x:942,y:458},
+            {x:882,y:308},{x:722,y:215},{x:548,y:268},{x:382,y:198},
+            {x:200,y:268},{x:100,y:430},{x:130,y:580},{x:292,y:655},
+            {x:432,y:700},
+        ],
+        rw: ROAD_W,
+        mud: [{x:600,y:550,r:25},{x:248,y:348,r:20}],
+    },
+    {   // 14 ── BELLA STRADA
+        name: 'BELLA STRADA', theme: 'italian',
+        cp: [
+            {x:512,y:700},{x:748,y:708},{x:898,y:628},{x:928,y:468},
+            {x:868,y:318},{x:708,y:218},{x:538,y:278},{x:378,y:208},
+            {x:208,y:278},{x:100,y:420},{x:122,y:580},{x:272,y:655},
+            {x:418,y:698},
+        ],
+        rw: ROAD_W,
+        mud: [{x:858,y:468,r:20},{x:208,y:420,r:22}],
+    },
+    {   // 15 ── LOOSE SLOPS
+        name: 'LOOSE SLOPS', theme: 'casino',
+        cp: [
+            {x:512,y:700},{x:760,y:710},{x:902,y:618},{x:942,y:458},
+            {x:890,y:308},{x:740,y:218},{x:558,y:268},{x:408,y:198},
+            {x:238,y:263},{x:108,y:408},{x:122,y:563},{x:278,y:645},
+            {x:418,y:692},
+        ],
+        rw: ROAD_W,
+        mud: [{x:700,y:408,r:30},{x:198,y:500,r:25}],
+        casinoDice: [],   // filled below for runtime physics
+    },
+    {   // 16 ── SHAMROCK SPRINT
+        name: 'SHAMROCK SPRINT', theme: 'irish',
+        cp: [
+            {x:512,y:695},{x:748,y:702},{x:893,y:622},{x:932,y:462},
+            {x:878,y:298},{x:718,y:198},{x:542,y:258},{x:388,y:188},
+            {x:218,y:268},{x:100,y:418},{x:128,y:572},{x:282,y:648},
+            {x:428,y:690},
+        ],
+        rw: ROAD_W,
+        mud: [{x:540,y:398,r:28},{x:178,y:278,r:22}],
+    },
+    {   // 17 ── EL GRANDE LOOP
+        name: 'EL GRANDE LOOP', theme: 'mexican',
+        cp: [
+            {x:512,y:720},{x:760,y:710},{x:920,y:618},{x:945,y:452},
+            {x:884,y:292},{x:722,y:202},{x:548,y:262},{x:382,y:192},
+            {x:212,y:252},{x:100,y:398},{x:118,y:558},{x:258,y:642},
+            {x:402,y:698},
+        ],
+        rw: ROAD_W,
+        mud: [{x:758,y:292,r:30},{x:258,y:452,r:25}],
+    },
+    {   // 18 ── IRIE CIRCUIT
+        name: 'IRIE CIRCUIT', theme: 'reggae',
+        cp: [
+            {x:512,y:710},{x:754,y:700},{x:903,y:612},{x:938,y:452},
+            {x:873,y:302},{x:713,y:212},{x:538,y:268},{x:378,y:198},
+            {x:208,y:272},{x:103,y:422},{x:122,y:577},{x:278,y:648},
+            {x:418,y:698},
+        ],
+        rw: ROAD_W,
+        mud: [{x:798,y:452,r:22},{x:178,y:522,r:20}],
+    },
+    {   // 19 ── OLÉ DASH
+        name: 'OL\u00c9 DASH', theme: 'spanish',
+        cp: [
+            {x:512,y:700},{x:748,y:698},{x:898,y:618},{x:938,y:458},
+            {x:878,y:308},{x:718,y:208},{x:538,y:263},{x:382,y:193},
+            {x:212,y:253},{x:103,y:398},{x:128,y:558},{x:278,y:643},
+            {x:418,y:693},
+        ],
+        rw: ROAD_W,
+        mud: [{x:718,y:458,r:25},{x:278,y:308,r:20}],
+    },
+    {   // 20 ── JUNGLE JAMBOREE
+        name: 'JUNGLE JAMBOREE', theme: 'jungle',
+        cp: [
+            {x:512,y:710},{x:758,y:700},{x:908,y:612},{x:943,y:452},
+            {x:878,y:298},{x:718,y:208},{x:543,y:263},{x:382,y:193},
+            {x:212,y:258},{x:98,y:402},{x:122,y:568},{x:278,y:643},
+            {x:422,y:698},
+        ],
+        rw: ROAD_W,
+        mud: [{x:458,y:348,r:35},{x:698,y:578,r:30}],
     },
     {
         // ── SYNTHWAVE — giant multi-screen track ──
@@ -995,6 +1151,7 @@ class BootScene extends Phaser.Scene {
             const asian     = idx === 2;
             const synth     = !!t.synth;
             const desk      = !!t.desk;
+            const theme     = t.theme || '';
 
             // ── visual ──
             // Support internal canvas downscaling for huge tracks (keeps
@@ -1524,6 +1681,549 @@ class BootScene extends Phaser.Scene {
                 }
                 vx.restore();
 
+
+            } else if (theme === 'african') {
+                // ── SAFARI RUSH: African savanna ──
+                const skyGaf = vx.createLinearGradient(0,0,0,GH);
+                skyGaf.addColorStop(0,'#c8a040'); skyGaf.addColorStop(1,'#e8c870');
+                vx.fillStyle = skyGaf; vx.fillRect(0,0,GW,GH);
+                for (let i = 0; i < 25; i++) {
+                    vx.fillStyle = `rgba(${140+(srand()*40|0)},${100+(srand()*30|0)},${20+(srand()*20|0)},0.35)`;
+                    vx.beginPath(); vx.ellipse(srand()*GW, srand()*GH, 30+srand()*60, 15+srand()*30, 0, 0, Math.PI*2); vx.fill();
+                }
+                const drawAcacia = (tx,ty,h) => {
+                    vx.strokeStyle='#5a3010'; vx.lineWidth=5;
+                    vx.beginPath(); vx.moveTo(tx,ty); vx.lineTo(tx,ty-h); vx.stroke();
+                    vx.fillStyle='rgba(40,80,10,0.8)';
+                    vx.beginPath(); vx.ellipse(tx,ty-h,h*0.7,h*0.25,0,0,Math.PI*2); vx.fill();
+                };
+                for (let i=0;i<8;i++) drawAcacia(srand()*GW, 200+srand()*(GH-250), 30+srand()*35);
+                // elephant
+                const aef_ex=160, aef_ey=520;
+                vx.fillStyle='rgba(80,80,80,0.75)';
+                vx.fillRect(aef_ex-30,aef_ey-50,60,50);
+                vx.beginPath(); vx.arc(aef_ex+30,aef_ey-55,22,0,Math.PI*2); vx.fill();
+                vx.fillRect(aef_ex+38,aef_ey-48,6,40);
+                [aef_ex-22,aef_ex+4].forEach(lx=>{ vx.fillRect(lx,aef_ey,10,30); });
+                // lion
+                const aef_lx=760, aef_ly=300;
+                vx.fillStyle='rgba(200,150,40,0.8)';
+                vx.beginPath(); vx.arc(aef_lx,aef_ly,28,0,Math.PI*2); vx.fill();
+                vx.fillStyle='rgba(220,175,60,0.9)';
+                vx.beginPath(); vx.arc(aef_lx,aef_ly,20,0,Math.PI*2); vx.fill();
+                vx.fillStyle='rgba(180,130,30,0.7)';
+                vx.fillRect(aef_lx-45,aef_ly+5,55,18);
+                vx.strokeStyle='#aa8855'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#8a6840'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#7a5a30'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#c8a040'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(60,120,180,0.8)'); g.addColorStop(1,'rgba(40,90,140,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'arabic') {
+                // ── DESERT MIRAGE: Middle-Eastern desert ──
+                const skyGar = vx.createLinearGradient(0,0,0,GH);
+                skyGar.addColorStop(0,'#87ceeb'); skyGar.addColorStop(0.5,'#e8c870'); skyGar.addColorStop(1,'#d4a848');
+                vx.fillStyle=skyGar; vx.fillRect(0,0,GW,GH);
+                for (let i=0;i<5;i++) {
+                    const arDx=srand()*GW, arDy=400+srand()*200, arDw=120+srand()*200, arDh=40+srand()*60;
+                    vx.fillStyle=`rgba(${200+(srand()*40|0)},${160+(srand()*30|0)},${80+(srand()*30|0)},0.6)`;
+                    vx.beginPath(); vx.ellipse(arDx,arDy,arDw,arDh,0,Math.PI,Math.PI*2); vx.fill();
+                }
+                const drawMinaret = (mx,my,h) => {
+                    vx.fillStyle='rgba(60,40,20,0.75)';
+                    vx.fillRect(mx-8,my-h,16,h);
+                    vx.beginPath(); vx.arc(mx,my-h,10,0,Math.PI*2); vx.fill();
+                    vx.fillRect(mx-2,my-h-14,4,6);
+                    vx.fillRect(mx-12,my-h*0.6,24,4);
+                };
+                drawMinaret(130,600,120); drawMinaret(870,560,90); drawMinaret(500,620,70);
+                vx.strokeStyle='rgba(180,120,40,0.4)'; vx.lineWidth=1;
+                for (let r=0;r<5;r++) for (let c=0;c<8;c++) {
+                    const arTx=c*28+10, arTy=r*28+10;
+                    vx.strokeRect(arTx,arTy,24,24);
+                    vx.beginPath(); vx.moveTo(arTx+12,arTy); vx.lineTo(arTx+24,arTy+12);
+                    vx.lineTo(arTx+12,arTy+24); vx.lineTo(arTx,arTy+12); vx.closePath(); vx.stroke();
+                }
+                vx.strokeStyle='#d4a848'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#b89030'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#a07820'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#e8c038'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(20,160,160,0.8)'); g.addColorStop(1,'rgba(0,120,120,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'brazil') {
+                // ── COPACABANA CRUNCH: Brazilian beach ──
+                const skyGbr = vx.createLinearGradient(0,0,0,GH*0.55);
+                skyGbr.addColorStop(0,'#4aa8e8'); skyGbr.addColorStop(1,'#87ceeb');
+                vx.fillStyle=skyGbr; vx.fillRect(0,0,GW,GH*0.55);
+                const sandGbr = vx.createLinearGradient(0,GH*0.5,0,GH);
+                sandGbr.addColorStop(0,'#f0d060'); sandGbr.addColorStop(1,'#e8c040');
+                vx.fillStyle=sandGbr; vx.fillRect(0,GH*0.5,GW,GH*0.5);
+                vx.fillStyle='rgba(30,130,200,0.7)'; vx.fillRect(0,GH*0.48,GW,GH*0.1);
+                vx.strokeStyle='rgba(255,255,255,0.5)'; vx.lineWidth=2;
+                for (let w=0;w<3;w++) {
+                    vx.beginPath(); vx.moveTo(0,GH*0.5+w*8);
+                    for (let brWx=0;brWx<GW;brWx+=40) vx.quadraticCurveTo(brWx+20,GH*0.48+w*8-6,brWx+40,GH*0.5+w*8);
+                    vx.stroke();
+                }
+                // beach towel stripes
+                vx.save(); vx.translate(800,550); vx.rotate(0.2);
+                ['#e03030','#fff','#3060c8','#fff','#e03030'].forEach((c,i)=>{ vx.fillStyle=c; vx.fillRect(0,i*8,70,8); });
+                vx.restore();
+                // Brazilian flag towel
+                vx.save(); vx.translate(120,560); vx.rotate(-0.15);
+                vx.fillStyle='#009c3b'; vx.fillRect(0,0,60,36);
+                vx.fillStyle='#fedf00'; vx.beginPath(); vx.moveTo(30,4); vx.lineTo(56,18); vx.lineTo(30,32); vx.lineTo(4,18); vx.closePath(); vx.fill();
+                vx.fillStyle='#002776'; vx.beginPath(); vx.arc(30,18,8,0,Math.PI*2); vx.fill();
+                vx.restore();
+                // pink bikini bra
+                vx.save(); vx.translate(440,620); vx.rotate(0.3);
+                vx.fillStyle='#ff69b4';
+                vx.beginPath(); vx.ellipse(-10,0,14,8,0,0,Math.PI*2); vx.fill();
+                vx.beginPath(); vx.ellipse(10,0,14,8,0,0,Math.PI*2); vx.fill();
+                vx.strokeStyle='#ff1493'; vx.lineWidth=1.5;
+                vx.beginPath(); vx.moveTo(-24,0); vx.lineTo(-10,-4); vx.lineTo(0,1); vx.lineTo(10,-4); vx.lineTo(24,0); vx.stroke();
+                vx.restore();
+                vx.strokeStyle='#e8c060'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#d0a840'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#c09030'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#ffffa0'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(80,60,20,0.7)'); g.addColorStop(1,'rgba(60,40,10,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'country') {
+                // ── LONE STAR RALLY: Texas cowboy ──
+                const skyGco = vx.createLinearGradient(0,0,0,GH*0.5);
+                skyGco.addColorStop(0,'#4a90d0'); skyGco.addColorStop(1,'#87ceeb');
+                vx.fillStyle=skyGco; vx.fillRect(0,0,GW,GH*0.5);
+                vx.fillStyle='#6aa040'; vx.fillRect(0,GH*0.45,GW,GH*0.55);
+                for (let i=0;i<20;i++) {
+                    vx.fillStyle=`rgba(${80+(srand()*40|0)},${120+(srand()*40|0)},${20+(srand()*20|0)},0.5)`;
+                    vx.beginPath(); vx.arc(srand()*GW,GH*0.5+srand()*GH*0.45,10+srand()*25,0,Math.PI*2); vx.fill();
+                }
+                for (let f=0;f<12;f++) {
+                    const coFx=50+f*80, coFy=430+srand()*40;
+                    vx.fillStyle='#8a5a28'; vx.fillRect(coFx-3,coFy,6,40);
+                    vx.fillRect(coFx-10,coFy+8,20,4); vx.fillRect(coFx-10,coFy+18,20,4);
+                }
+                // cowboy hat
+                vx.fillStyle='#5a3010';
+                vx.beginPath(); vx.ellipse(700,288,55,12,0,0,Math.PI*2); vx.fill();
+                vx.fillRect(682,250,36,38);
+                vx.beginPath(); vx.ellipse(700,250,18,8,0,0,Math.PI*2); vx.fill();
+                vx.fillStyle='#c8a060'; vx.fillRect(682,270,36,4);
+                // Jack Daniels bottle
+                vx.fillStyle='#1a1a1a'; vx.fillRect(190,530,20,50);
+                vx.fillRect(195,515,10,18);
+                vx.fillStyle='#333'; vx.fillRect(188,562,24,4);
+                vx.fillStyle='#fff'; vx.font='bold 4px sans-serif'; vx.textAlign='center';
+                vx.fillText('JACK',200,572); vx.fillText("DANIEL'S",200,578);
+                vx.fillStyle='#888'; vx.beginPath(); vx.arc(200,515,5,0,Math.PI*2); vx.fill();
+                vx.strokeStyle='#9a7040'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#7a5020'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#6a4010'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#d0a040'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(60,40,10,0.9)'); g.addColorStop(1,'rgba(40,20,0,0.15)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'christmas') {
+                // ── JINGLE RALLY: Christmas snow ──
+                vx.fillStyle='#dce8f8'; vx.fillRect(0,0,GW,GH);
+                for (let i=0;i<40;i++) {
+                    vx.fillStyle=`rgba(255,255,255,${0.4+srand()*0.5})`;
+                    vx.beginPath(); vx.arc(srand()*GW,srand()*GH,15+srand()*50,0,Math.PI*2); vx.fill();
+                }
+                for (let i=0;i<60;i++) {
+                    const xmSx=srand()*GW, xmSy=srand()*GH, xmSr=2+srand()*4;
+                    vx.strokeStyle=`rgba(200,220,255,${0.5+srand()*0.5})`; vx.lineWidth=1;
+                    for (let a=0;a<3;a++) {
+                        const xmAng=a*Math.PI/3;
+                        vx.beginPath(); vx.moveTo(xmSx+Math.cos(xmAng)*xmSr,xmSy+Math.sin(xmAng)*xmSr);
+                        vx.lineTo(xmSx-Math.cos(xmAng)*xmSr,xmSy-Math.sin(xmAng)*xmSr); vx.stroke();
+                    }
+                }
+                // Christmas table
+                const xmTx=GW/2-80, xmTy=GH/2-60;
+                vx.fillStyle='#8a5a28'; vx.fillRect(xmTx,xmTy,160,90);
+                vx.fillStyle='#c8a060'; vx.fillRect(xmTx+4,xmTy+4,152,82);
+                [[xmTx+30,xmTy+35],[xmTx+90,xmTy+35],[xmTx+60,xmTy+20]].forEach(([px,py])=>{
+                    vx.fillStyle='#eee'; vx.beginPath(); vx.arc(px,py,16,0,Math.PI*2); vx.fill();
+                    vx.fillStyle='rgba(180,100,30,0.8)'; vx.beginPath(); vx.arc(px,py,10,0,Math.PI*2); vx.fill();
+                });
+                // Christmas cracker
+                vx.save(); vx.translate(xmTx+145,xmTy+45); vx.rotate(0.4);
+                vx.fillStyle='#cc0000'; vx.fillRect(-35,-8,70,16);
+                vx.fillStyle='#ffcc00'; vx.fillRect(-33,-6,66,12);
+                vx.fillStyle='#cc0000';
+                vx.beginPath(); vx.ellipse(-35,0,10,5,0.5,0,Math.PI*2); vx.fill();
+                vx.beginPath(); vx.ellipse(35,0,10,5,-0.5,0,Math.PI*2); vx.fill();
+                vx.fillStyle='#fff'; vx.font='bold 5px sans-serif'; vx.textAlign='center';
+                vx.fillText('POP!',0,3);
+                vx.restore();
+                // Christmas lights
+                vx.strokeStyle='#555'; vx.lineWidth=1;
+                vx.beginPath(); vx.moveTo(0,28);
+                for (let l=0;l<GW;l+=30) vx.quadraticCurveTo(l+15,30+srand()*12,l+30,28+srand()*8);
+                vx.stroke();
+                ['#ff0000','#ffcc00','#00cc00','#0044ff','#ff6600'].forEach((c,li)=>{
+                    vx.fillStyle=c; vx.beginPath(); vx.arc(li*30+15,34,5,0,Math.PI*2); vx.fill();
+                });
+                vx.strokeStyle='#c0d0e0'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#a0b8c8'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#90a8b8'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#ff0000'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(180,210,240,0.8)'); g.addColorStop(1,'rgba(160,200,230,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'indian') {
+                // ── CURRY CORNER: Indian restaurant / Diwali ──
+                const bgIn=vx.createLinearGradient(0,0,0,GH);
+                bgIn.addColorStop(0,'#aa3300'); bgIn.addColorStop(0.5,'#cc6600'); bgIn.addColorStop(1,'#ff9933');
+                vx.fillStyle=bgIn; vx.fillRect(0,0,GW,GH);
+                for (let i=0;i<18;i++) {
+                    const inDx=srand()*GW, inDy=srand()*GH;
+                    vx.fillStyle='rgba(210,140,30,0.8)';
+                    vx.beginPath(); vx.ellipse(inDx,inDy,8,5,0,0,Math.PI*2); vx.fill();
+                    vx.fillStyle='rgba(255,200,0,0.9)';
+                    vx.beginPath(); vx.ellipse(inDx,inDy-7,3,7,0,0,Math.PI*2); vx.fill();
+                    vx.fillStyle='rgba(255,120,0,0.6)';
+                    vx.beginPath(); vx.ellipse(inDx,inDy-9,2,5,0,0,Math.PI*2); vx.fill();
+                }
+                // curry plate
+                vx.fillStyle='#e8e0d0'; vx.beginPath(); vx.arc(GW/2,GH/2+20,45,0,Math.PI*2); vx.fill();
+                vx.fillStyle='#c86020'; vx.beginPath(); vx.arc(GW/2,GH/2+20,32,0,Math.PI*2); vx.fill();
+                vx.fillStyle='rgba(255,200,100,0.7)'; vx.beginPath(); vx.arc(GW/2-8,GH/2+15,10,0,Math.PI*2); vx.fill();
+                // naan
+                vx.save(); vx.translate(GW/2+75,GH/2+30); vx.rotate(0.3);
+                vx.fillStyle='#d4a860';
+                vx.beginPath(); vx.ellipse(0,0,35,22,0,0,Math.PI*2); vx.fill();
+                vx.strokeStyle='#b08040'; vx.lineWidth=1;
+                vx.beginPath(); vx.moveTo(-20,-5); vx.quadraticCurveTo(0,-12,20,-5); vx.stroke();
+                vx.beginPath(); vx.moveTo(-15,5); vx.quadraticCurveTo(0,12,15,5); vx.stroke();
+                vx.restore();
+                vx.strokeStyle='#cc7722'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#aa5500'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#993300'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#ffcc00'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(200,100,20,0.85)'); g.addColorStop(1,'rgba(180,80,10,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'italian') {
+                // ── BELLA STRADA: Italian countryside ──
+                const skyGit = vx.createLinearGradient(0,0,0,GH*0.5);
+                skyGit.addColorStop(0,'#5090d0'); skyGit.addColorStop(1,'#87ceeb');
+                vx.fillStyle=skyGit; vx.fillRect(0,0,GW,GH*0.5);
+                vx.fillStyle='#a8c070'; vx.fillRect(0,GH*0.45,GW,GH*0.55);
+                // vineyard rows
+                for (let r=0;r<4;r++) {
+                    const itVy=GH*0.5+r*40;
+                    vx.strokeStyle='rgba(60,90,20,0.5)'; vx.lineWidth=1.5;
+                    vx.beginPath(); vx.moveTo(50,itVy); vx.lineTo(350,itVy); vx.stroke();
+                    for(let p=60;p<350;p+=30){vx.fillStyle='rgba(40,80,20,0.6)';vx.beginPath();vx.arc(p,itVy-4,5,0,Math.PI*2);vx.fill();}
+                }
+                // wine glass
+                const itWgx=GW-160, itWgy=300;
+                vx.strokeStyle='rgba(200,40,40,0.8)'; vx.lineWidth=2;
+                vx.beginPath(); vx.moveTo(itWgx,itWgy+40); vx.lineTo(itWgx,itWgy+55); vx.stroke();
+                vx.beginPath(); vx.moveTo(itWgx-12,itWgy+56); vx.lineTo(itWgx+12,itWgy+56); vx.stroke();
+                vx.fillStyle='rgba(180,20,20,0.75)';
+                vx.beginPath(); vx.moveTo(itWgx-18,itWgy); vx.quadraticCurveTo(itWgx-18,itWgy+35,itWgx,itWgy+40);
+                vx.quadraticCurveTo(itWgx+18,itWgy+35,itWgx+18,itWgy); vx.closePath(); vx.fill();
+                vx.fillStyle='rgba(255,80,80,0.2)'; vx.beginPath(); vx.arc(itWgx-6,itWgy+12,5,0,Math.PI*2); vx.fill();
+                // olive branch
+                vx.strokeStyle='#5a7a20'; vx.lineWidth=3;
+                vx.beginPath(); vx.moveTo(300,520); vx.quadraticCurveTo(340,490,380,510); vx.stroke();
+                [[320,510],[345,498],[368,506]].forEach(([olx,oly])=>{
+                    vx.fillStyle='#2a5a10'; vx.beginPath(); vx.ellipse(olx,oly,10,5,-0.4,0,Math.PI*2); vx.fill();
+                    vx.fillStyle='#1a3a08'; vx.beginPath(); vx.ellipse(olx,oly,4,7,0.3,0,Math.PI*2); vx.fill();
+                });
+                vx.strokeStyle='#c0a878'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#a09070'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#908060'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#cc3333'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(120,20,20,0.75)'); g.addColorStop(1,'rgba(80,10,10,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'casino') {
+                // ── LOOSE SLOPS: Craps table / Las Vegas ──
+                vx.fillStyle='#0d3d0d'; vx.fillRect(0,0,GW,GH); // dark felt base
+                // felt texture patches
+                for (let i=0;i<30;i++) {
+                    vx.fillStyle=`rgba(${20+(srand()*20|0)},${80+(srand()*30|0)},${20+(srand()*20|0)},0.3)`;
+                    vx.beginPath(); vx.arc(srand()*GW,srand()*GH,20+srand()*60,0,Math.PI*2); vx.fill();
+                }
+                // craps table border lines
+                vx.strokeStyle='rgba(255,215,0,0.6)'; vx.lineWidth=3;
+                vx.strokeRect(40,40,GW-80,GH-80);
+                vx.strokeRect(60,60,GW-120,GH-120);
+                // LOOSE SLOPS text zones
+                vx.fillStyle='rgba(0,80,0,0.5)'; vx.fillRect(80,200,200,80);
+                vx.strokeStyle='rgba(255,215,0,0.5)'; vx.lineWidth=1; vx.strokeRect(80,200,200,80);
+                vx.fillStyle='rgba(255,215,0,0.8)'; vx.font='bold 11px monospace'; vx.textAlign='center';
+                vx.fillText('LOOSE SLOPS',180,248);
+                // Pass line, Don't Pass
+                vx.fillStyle='rgba(255,255,255,0.08)'; vx.fillRect(80,140,GW-160,50);
+                vx.fillStyle='rgba(255,215,0,0.5)'; vx.font='7px monospace'; vx.textAlign='center';
+                vx.fillText('PASS LINE',GW/2,170);
+                // dice stored for runtime physics — draw placeholder silhouettes
+                const casinoDicePos = [{x:320,y:360,r:22},{x:680,y:480,r:22},{x:500,y:200,r:20},{x:820,y:320,r:18},{x:160,y:540,r:20}];
+                t.casinoDice = casinoDicePos.map(d=>({...d, vx:0, vy:0, face:srand()*6+1|0, spin:0}));
+                // road — dark green felt
+                vx.strokeStyle='#2a6a2a'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#1a4a1a'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#143a14'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='rgba(255,215,0,0.6)'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    // chip piles
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(255,215,0,0.6)'); g.addColorStop(1,'rgba(200,160,0,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                    for(let ch=0;ch<5;ch++){
+                        vx.strokeStyle=['#e00','#00e','#0e0','#ee0','#e0e'][ch];vx.lineWidth=2;
+                        vx.beginPath();vx.arc(m.x,m.y,m.r-ch*3,0,Math.PI*2);vx.stroke();
+                    }
+                });
+
+            } else if (theme === 'irish') {
+                // ── SHAMROCK SPRINT: Ireland ──
+                vx.fillStyle='#2a7a18'; vx.fillRect(0,0,GW,GH);
+                // rolling hills
+                vx.fillStyle='rgba(40,110,25,0.5)';
+                [[200,GH,350,0],[600,GH,280,0],[900,GH,300,0]].forEach(([hx,hy,hw,off])=>{
+                    vx.beginPath(); vx.arc(hx+off,hy,hw,Math.PI,Math.PI*2); vx.fill();
+                });
+                // four-leaf clovers
+                const drawClover = (cx3,cy3,r) => {
+                    vx.fillStyle='rgba(30,150,20,0.8)';
+                    [[0,-1],[1,0],[0,1],[-1,0]].forEach(([dx,dy])=>{
+                        vx.beginPath(); vx.arc(cx3+dx*r,cy3+dy*r,r,0,Math.PI*2); vx.fill();
+                    });
+                    vx.fillStyle='rgba(20,120,10,0.5)'; vx.lineWidth=1;
+                    vx.beginPath(); vx.moveTo(cx3,cy3+r); vx.quadraticCurveTo(cx3+r*0.5,cy3+r*2.5,cx3,cy3+r*3); vx.stroke();
+                };
+                for (let i=0;i<14;i++) drawClover(srand()*GW, srand()*GH, 7+srand()*8);
+                // Guinness pint
+                const gpx=800, gpy=250;
+                vx.fillStyle='#111';
+                vx.beginPath(); vx.moveTo(gpx-18,gpy+60); vx.lineTo(gpx-15,gpy); vx.lineTo(gpx+15,gpy); vx.lineTo(gpx+18,gpy+60); vx.closePath(); vx.fill();
+                vx.fillStyle='#fdf5d0'; // cream head
+                vx.beginPath(); vx.ellipse(gpx,gpy,15,8,0,0,Math.PI*2); vx.fill();
+                vx.fillStyle='#333';
+                vx.beginPath(); vx.moveTo(gpx-14,gpy+5); vx.lineTo(gpx-16,gpy+60); vx.lineTo(gpx+16,gpy+60); vx.lineTo(gpx+14,gpy+5); vx.closePath(); vx.fill();
+                vx.strokeStyle='rgba(255,255,200,0.3)'; vx.lineWidth=1;
+                vx.beginPath(); vx.moveTo(gpx-8,gpy+10); vx.lineTo(gpx-10,gpy+55); vx.stroke(); // bubble stream
+                vx.strokeStyle='#888'; vx.lineWidth=1;
+                vx.strokeRect(gpx-18,gpy-8,36,68);
+                vx.strokeStyle='#888'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#666'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#555'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#fff'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(40,20,10,0.9)'); g.addColorStop(1,'rgba(30,15,5,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'mexican') {
+                // ── EL GRANDE LOOP: Mexico ──
+                const skyGmx = vx.createLinearGradient(0,0,0,GH*0.5);
+                skyGmx.addColorStop(0,'#3080c8'); skyGmx.addColorStop(1,'#87ceeb');
+                vx.fillStyle=skyGmx; vx.fillRect(0,0,GW,GH*0.5);
+                vx.fillStyle='#c8783a'; vx.fillRect(0,GH*0.45,GW,GH*0.55);
+                for (let i=0;i<15;i++) {
+                    vx.fillStyle=`rgba(${160+(srand()*40|0)},${90+(srand()*30|0)},${30+(srand()*20|0)},0.4)`;
+                    vx.beginPath(); vx.arc(srand()*GW,GH*0.5+srand()*GH*0.45,10+srand()*30,0,Math.PI*2); vx.fill();
+                }
+                // sombrero
+                const mxHx=700, mxHy=260;
+                vx.fillStyle='#c8a020';
+                vx.beginPath(); vx.ellipse(mxHx,mxHy+10,75,14,0,0,Math.PI*2); vx.fill(); // brim
+                vx.fillRect(mxHx-22,mxHy-35,44,45); // crown
+                vx.beginPath(); vx.ellipse(mxHx,mxHy-35,22,10,0,0,Math.PI*2); vx.fill(); // top
+                vx.fillStyle='#cc3300'; vx.fillRect(mxHx-22,mxHy-12,44,5); // band
+                // chips and guacamole
+                const mxCx=200, mxCy=540;
+                vx.fillStyle='#3a7a20'; vx.beginPath(); vx.ellipse(mxCx,mxCy,30,20,0,0,Math.PI*2); vx.fill(); // guac bowl
+                vx.fillStyle='#4a9a28'; vx.beginPath(); vx.ellipse(mxCx,mxCy,22,14,0,0,Math.PI*2); vx.fill();
+                for(let ch=0;ch<8;ch++){
+                    vx.fillStyle='#e8c060'; vx.save(); vx.translate(mxCx+40+srand()*30,mxCy-10+srand()*20); vx.rotate(srand()*Math.PI);
+                    vx.beginPath(); vx.moveTo(-12,-6); vx.lineTo(12,-6); vx.lineTo(8,6); vx.lineTo(-8,6); vx.closePath(); vx.fill();
+                    vx.restore();
+                }
+                // Corona bottle
+                const mxBx=860, mxBy=500;
+                vx.fillStyle='rgba(220,200,100,0.7)'; vx.fillRect(mxBx-8,mxBy-60,16,60);
+                vx.fillRect(mxBx-5,mxBy-75,10,18);
+                vx.strokeStyle='rgba(180,160,60,0.8)'; vx.lineWidth=1; vx.strokeRect(mxBx-8,mxBy-60,16,60);
+                vx.fillStyle='rgba(255,255,255,0.5)'; vx.font='bold 4px sans-serif'; vx.textAlign='center';
+                vx.fillText('CORONA',mxBx,mxBy-30);
+                vx.fillStyle='#ccc'; vx.beginPath(); vx.arc(mxBx,mxBy-75,5,0,Math.PI*2); vx.fill();
+                vx.strokeStyle='#cc8830'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#aa6618'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#884408'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#ffcc00'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(200,80,20,0.8)'); g.addColorStop(1,'rgba(160,60,10,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'reggae') {
+                // ── IRIE CIRCUIT: Reggae / Jamaica ──
+                // bold alternating horizontal stripes
+                const rgStripes=['#009900','#000000','#ffcc00','#000000','#cc0000','#000000','#009900'];
+                rgStripes.forEach((c,i)=>{ vx.fillStyle=c; vx.fillRect(0,i*(GH/rgStripes.length),GW,GH/rgStripes.length+2); });
+                // diagonal stripe accents
+                for (let d=0;d<GW+GH;d+=90) {
+                    vx.strokeStyle='rgba(255,204,0,0.12)'; vx.lineWidth=30;
+                    vx.beginPath(); vx.moveTo(d,0); vx.lineTo(d-GH,GH); vx.stroke();
+                }
+                // Rasta star / geometric
+                vx.strokeStyle='rgba(255,204,0,0.3)'; vx.lineWidth=2;
+                const rgStarCx=GW/2, rgStarCy=GH/2, rgStarR=80;
+                for(let p=0;p<5;p++){
+                    const a1=p*Math.PI*2/5-Math.PI/2, a2=(p+2)*Math.PI*2/5-Math.PI/2;
+                    vx.beginPath(); vx.moveTo(rgStarCx+Math.cos(a1)*rgStarR,rgStarCy+Math.sin(a1)*rgStarR);
+                    vx.lineTo(rgStarCx+Math.cos(a2)*rgStarR,rgStarCy+Math.sin(a2)*rgStarR); vx.stroke();
+                }
+                // road — black with reggae yellow dashes
+                vx.strokeStyle='#333'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#111'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#0a0a0a'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#ffcc00'; vx.lineWidth=2; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(0,0,0,0.85)'); g.addColorStop(1,'rgba(0,0,0,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'spanish') {
+                // ── OLÉ DASH: Spain / Bullfighting ──
+                const skyGsp = vx.createLinearGradient(0,0,0,GH*0.5);
+                skyGsp.addColorStop(0,'#d06010'); skyGsp.addColorStop(1,'#e8a050');
+                vx.fillStyle=skyGsp; vx.fillRect(0,0,GW,GH*0.5);
+                vx.fillStyle='#c89050'; vx.fillRect(0,GH*0.45,GW,GH*0.55); // arena sand
+                // arena circular pattern
+                vx.strokeStyle='rgba(160,80,20,0.25)'; vx.lineWidth=2;
+                [140,220,300,380].forEach(r=>{ vx.beginPath(); vx.arc(GW/2,GH,r,Math.PI,Math.PI*2); vx.stroke(); });
+                // bullfighting poster
+                const spPx=GW-200, spPy=120;
+                vx.fillStyle='#e8d0a0'; vx.fillRect(spPx,spPy,120,160);
+                vx.strokeStyle='#cc2200'; vx.lineWidth=4; vx.strokeRect(spPx,spPy,120,160);
+                vx.fillStyle='#cc2200'; vx.fillRect(spPx,spPy,120,30);
+                vx.fillStyle='#fff'; vx.font='bold 9px sans-serif'; vx.textAlign='center';
+                vx.fillText('GRAN CORRIDA',spPx+60,spPy+19);
+                // bull silhouette
+                vx.fillStyle='rgba(30,10,0,0.85)';
+                vx.fillRect(spPx+20,spPy+50,70,35); // body
+                vx.beginPath(); vx.arc(spPx+85,spPy+50,18,0,Math.PI*2); vx.fill(); // head
+                vx.fillRect(spPx+14,spPy+80,10,25); vx.fillRect(spPx+36,spPy+80,10,25); // back legs
+                vx.fillRect(spPx+60,spPy+80,10,25); vx.fillRect(spPx+78,spPy+80,10,25); // front legs
+                vx.fillStyle='#1a0500';
+                vx.beginPath(); vx.moveTo(spPx+96,spPy+38); vx.lineTo(spPx+112,spPy+30); // horns
+                vx.moveTo(spPx+96,spPy+44); vx.lineTo(spPx+108,spPy+52); vx.stroke();
+                vx.fillStyle='#cc2200'; vx.font='10px sans-serif'; vx.textAlign='center';
+                vx.fillText('OL\u00c9!',spPx+60,spPy+140);
+                // matador cape stripe
+                vx.save(); vx.translate(200,500); vx.rotate(-0.2);
+                vx.fillStyle='#cc2200'; vx.fillRect(0,0,60,80);
+                vx.fillStyle='#ffcc00'; vx.fillRect(0,0,8,80); vx.fillRect(52,0,8,80);
+                vx.restore();
+                vx.strokeStyle='#d0a060'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#b08040'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#a07030'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#cc2200'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(80,40,10,0.85)'); g.addColorStop(1,'rgba(60,30,5,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
+            } else if (theme === 'jungle') {
+                // ── JUNGLE JAMBOREE: Dense jungle ──
+                vx.fillStyle='#0d3a08'; vx.fillRect(0,0,GW,GH);
+                for (let i=0;i<35;i++) {
+                    vx.fillStyle=`rgba(${15+(srand()*20|0)},${60+(srand()*40|0)},${10+(srand()*20|0)},0.5)`;
+                    vx.beginPath(); vx.arc(srand()*GW,srand()*GH,20+srand()*70,0,Math.PI*2); vx.fill();
+                }
+                // jungle trees
+                const drawJungleTree = (jx,jy,jh) => {
+                    vx.fillStyle='#4a2808'; vx.fillRect(jx-5,jy-jh,10,jh);
+                    vx.fillStyle=`rgba(${20+(srand()*20|0)},${100+(srand()*40|0)},${10+(srand()*15|0)},0.85)`;
+                    vx.beginPath(); vx.arc(jx,jy-jh,jh*0.5,0,Math.PI*2); vx.fill();
+                    vx.fillStyle=`rgba(${30+(srand()*20|0)},${130+(srand()*40|0)},${20+(srand()*15|0)},0.7)`;
+                    vx.beginPath(); vx.arc(jx+srand()*20-10,jy-jh-jh*0.25,jh*0.38,0,Math.PI*2); vx.fill();
+                };
+                for (let i=0;i<12;i++) drawJungleTree(srand()*GW, srand()*GH*0.8+GH*0.1, 40+srand()*50);
+                // hanging vines
+                vx.strokeStyle='rgba(30,100,10,0.6)'; vx.lineWidth=2;
+                for (let v=0;v<8;v++) {
+                    const jvx=srand()*GW, jvh=80+srand()*120;
+                    vx.beginPath(); vx.moveTo(jvx,0);
+                    vx.quadraticCurveTo(jvx+20,jvh*0.5,jvx+5,jvh); vx.stroke();
+                    vx.fillStyle='rgba(20,130,10,0.6)';
+                    for(let lv=0;lv<3;lv++){vx.beginPath();vx.ellipse(jvx+5+lv*3,jvh*0.25+lv*jvh*0.25,8,5,0.5,0,Math.PI*2);vx.fill();}
+                }
+                // swinging monkeys
+                const drawMonkey = (jmx,jmy) => {
+                    vx.fillStyle='rgba(80,50,20,0.85)';
+                    vx.beginPath(); vx.arc(jmx,jmy,10,0,Math.PI*2); vx.fill(); // body
+                    vx.beginPath(); vx.arc(jmx,jmy-12,7,0,Math.PI*2); vx.fill(); // head
+                    vx.fillStyle='rgba(120,80,40,0.8)';
+                    vx.beginPath(); vx.arc(jmx,jmy-11,4,0,Math.PI*2); vx.fill(); // face
+                    // arms up (holding vine)
+                    vx.strokeStyle='rgba(80,50,20,0.85)'; vx.lineWidth=2;
+                    vx.beginPath(); vx.moveTo(jmx-8,jmy-8); vx.lineTo(jmx-14,jmy-22); vx.stroke();
+                    vx.beginPath(); vx.moveTo(jmx+8,jmy-8); vx.lineTo(jmx+14,jmy-22); vx.stroke();
+                    vx.beginPath(); vx.moveTo(jmx-5,jmy+8); vx.lineTo(jmx-3,jmy+18); vx.stroke(); // tail
+                    vx.beginPath(); vx.moveTo(jmx+5,jmy+8); vx.lineTo(jmx+2,jmy+18); vx.stroke();
+                };
+                drawMonkey(250,150); drawMonkey(720,220); drawMonkey(480,90);
+                vx.strokeStyle='#3a6a20'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
+                drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#2a5015'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='#1e3e10'; vx.lineWidth=t.rw-12; drawPath(vx,wp); vx.stroke();
+                vx.strokeStyle='rgba(180,255,100,0.5)'; vx.lineWidth=1; vx.setLineDash([8,14]); drawPath(vx,wp); vx.stroke(); vx.setLineDash([]);
+                t.mud.forEach(m => {
+                    const g=vx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r);
+                    g.addColorStop(0,'rgba(30,60,10,0.9)'); g.addColorStop(1,'rgba(20,40,5,0.1)');
+                    vx.fillStyle=g; vx.beginPath(); vx.arc(m.x,m.y,m.r,0,Math.PI*2); vx.fill();
+                });
+
             } else if (desk) {
                 drawDeskTrack(vx, t, wp, srand);
             } else {
@@ -1560,24 +2260,30 @@ class BootScene extends Phaser.Scene {
             const sa = Math.atan2(s1.y - s0.y, s1.x - s0.x);
             const pa = sa + Math.PI / 2;
             vx.save();
-            vx.strokeStyle = synth ? '#2af0ff' : halloween ? '#ff6600' : soccer ? '#fff' : asian ? '#cc2020' : desk ? '#00ff99' : '#fff'; vx.lineWidth = 5;
+            // theme-keyed start/finish colours
+            const sfLine = synth?'#2af0ff': halloween?'#ff6600': soccer?'#fff': asian?'#cc2020':
+                theme==='reggae'?'#ffcc00': theme==='christmas'?'#ff0000': theme==='casino'?'#ffd700':
+                theme==='italian'?'#cc3333': theme==='spanish'?'#cc2200': desk?'#00ff99': '#fff';
+            const sfA = synth?'#ff2a6d': halloween?'#c85000': soccer?'#fff': asian?'#cc2020':
+                theme==='reggae'?'#ffcc00': theme==='christmas'?'#cc0000': theme==='casino'?'#ffd700':
+                theme==='italian'?'#cc3333': theme==='spanish'?'#cc2200': desk?'#222': '#000';
+            const sfB = synth?'#2af0ff': halloween?'#300030': soccer?'#1a6e1a': asian?'#ffd0d0':
+                theme==='reggae'?'#009900': theme==='christmas'?'#006600': theme==='casino'?'#0d3d0d':
+                theme==='italian'?'#a09070': theme==='spanish'?'#c89050': desk?'#eee': '#fff';
+            const wmCol = synth?'rgba(255,42,109,0.7)': halloween?'rgba(200,80,0,0.5)':
+                soccer?'rgba(0,80,0,0.35)': asian?'rgba(160,30,30,0.45)':
+                theme==='reggae'?'rgba(0,120,0,0.55)': theme==='christmas'?'rgba(180,0,0,0.55)':
+                theme==='casino'?'rgba(0,100,0,0.55)': theme==='african'?'rgba(140,90,0,0.5)':
+                theme==='arabic'?'rgba(160,120,30,0.5)': theme==='jungle'?'rgba(20,80,10,0.6)':
+                desk?'rgba(40,30,20,0.4)': 'rgba(0,0,0,0.25)';
+            vx.strokeStyle = sfLine; vx.lineWidth = 5;
             vx.beginPath();
             vx.moveTo(s0.x + Math.cos(pa) * t.rw / 2, s0.y + Math.sin(pa) * t.rw / 2);
             vx.lineTo(s0.x - Math.cos(pa) * t.rw / 2, s0.y - Math.sin(pa) * t.rw / 2);
             vx.stroke();
             // checkerboard
             for (let i = -3; i <= 3; i++) {
-                vx.fillStyle = synth
-                    ? (i % 2 === 0 ? '#ff2a6d' : '#2af0ff')
-                    : halloween
-                    ? (i % 2 === 0 ? '#c85000' : '#300030')
-                    : soccer
-                    ? (i % 2 === 0 ? '#fff' : '#1a6e1a')
-                    : asian
-                    ? (i % 2 === 0 ? '#cc2020' : '#ffd0d0')
-                    : desk
-                    ? (i % 2 === 0 ? '#222' : '#eee')
-                    : (i % 2 === 0 ? '#000' : '#fff');
+                vx.fillStyle = i % 2 === 0 ? sfA : sfB;
                 const bx = s0.x + Math.cos(pa) * i * (t.rw / 7);
                 const by = s0.y + Math.sin(pa) * i * (t.rw / 7);
                 vx.fillRect(bx - 3, by - 3, 6, 6);
@@ -1585,7 +2291,7 @@ class BootScene extends Phaser.Scene {
             vx.restore();
 
             // track name subtle watermark
-            vx.fillStyle = synth ? 'rgba(255,42,109,0.7)' : halloween ? 'rgba(200,80,0,0.5)' : soccer ? 'rgba(0,80,0,0.35)' : asian ? 'rgba(160,30,30,0.45)' : desk ? 'rgba(40,30,20,0.4)' : 'rgba(0,0,0,0.25)'; vx.font = 'bold 13px monospace';
+            vx.fillStyle = wmCol; vx.font = 'bold 13px monospace';
             vx.textAlign = 'left'; vx.fillText(t.name, 8, TH - 8);
 
             this.textures.addCanvas('tv_' + idx, vc);
@@ -1692,7 +2398,7 @@ class TitleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.tweens.add({ targets: pt, alpha: 0.2, duration: 600, yoyo: true, repeat: -1 });
 
-        const mapHint = this.add.text(GW / 2, 665, 'Triple-tap 0–9 to jump to a track  (0 = DESK CHAOS, 9 = NEON DRIVE)', {
+        const mapHint = this.add.text(GW / 2, 665, 'Type *NN to jump to a track  (e.g. *00\u202f=\u202fSIDEWINDER, *22\u202f=\u202fDESK CHAOS)', {
             fontSize: '14px', fontFamily: 'monospace', color: '#555',
         }).setOrigin(0.5);
 
@@ -1701,34 +2407,39 @@ class TitleScene extends Phaser.Scene {
             fontSize: '20px', fontFamily: 'monospace', color: '#ff6600', fontStyle: 'bold',
         }).setOrigin(0.5);
 
-        // triple-tap map select: collect up to 3 identical digits within 1.2 s
-        let digitBuf = '';
-        let digitTimer = null;
-        const flushDigits = () => {
-            digitBuf = '';
+        // *NN track select: press * then two digits (e.g. *01, *15)
+        let starMode = false;
+        let starBuf = '';
+        let starTimer = null;
+        const flushStar = () => {
+            starMode = false;
+            starBuf = '';
             mapSelect.setText('');
-            digitTimer = null;
+            starTimer = null;
         };
 
         this.input.keyboard.on('keydown', (ev) => {
             const d = ev.key;
-            if (d >= '0' && d <= '9') {
-                if (digitBuf.length > 0 && d !== digitBuf[0]) {
-                    // different digit — reset
-                    digitBuf = d;
-                } else {
-                    digitBuf += d;
-                }
-                mapSelect.setText('TRACK SELECT: ' + digitBuf);
-                if (digitTimer) clearTimeout(digitTimer);
-                if (digitBuf.length === 3) {
-                    // confirmed — jump to that track (0 maps to track 10)
-                    const trackNum = d === '0' ? 10 : parseInt(d);
+            if (d === '*') {
+                if (starTimer) clearTimeout(starTimer);
+                starMode = true;
+                starBuf = '';
+                mapSelect.setText('TRACK SELECT: *');
+                starTimer = setTimeout(flushStar, 2000);
+                return;
+            }
+            if (starMode && d >= '0' && d <= '9') {
+                starBuf += d;
+                mapSelect.setText('TRACK SELECT: *' + starBuf);
+                if (starTimer) clearTimeout(starTimer);
+                if (starBuf.length === 2) {
+                    const idx = Math.min(parseInt(starBuf, 10), TRACKS.length - 1);
                     gs = resetGameState();
-                    gs.raceNum = trackNum - 1;
-                    flushDigits();
-                    this.scene.start('PlayerSelectScene');                } else {
-                    digitTimer = setTimeout(flushDigits, 1200);
+                    gs.raceNum = idx;
+                    flushStar();
+                    this.scene.start('PlayerSelectScene');
+                } else {
+                    starTimer = setTimeout(flushStar, 2000);
                 }
             }
         });
@@ -1929,6 +2640,17 @@ class RaceScene extends Phaser.Scene {
             this.subbuteo = { x: sb.x, y: sb.y, gfx, tilt: 0, tiltVel: 0, baseY: sb.y };
         }
 
+        // casino dice: interactive physics objects for LOOSE SLOPS
+        this.casinoDice = [];
+        if (this.td.casinoDice && this.td.casinoDice.length) {
+            this.td.casinoDice.forEach(d => {
+                const gfx = this.add.graphics().setDepth(7);
+                this.drawDiceGfx(gfx, 0, 0, d.r, d.face);
+                gfx.x = d.x; gfx.y = d.y;
+                this.casinoDice.push({ x: d.x, y: d.y, vx: 0, vy: 0, r: d.r, face: d.face, gfx, spin: 0 });
+            });
+        }
+
         // halloween ghost
         this.ghost = null;
         if (ti === 7) {
@@ -2091,6 +2813,7 @@ class RaceScene extends Phaser.Scene {
 
         this.updateDust(dt);
         if (this.soccerBalls.length > 0 || this.subbuteo) this.updateSoccerProps(dt);
+        if (this.casinoDice.length > 0) this.updateCasinoDice(dt);
         if (this.ghost) this.updateGhost(dt, delta);
         if (this.td.boosts && this.td.boosts.length) this.updateDeskHazards(dt);
         this.calcPositions();
@@ -2475,6 +3198,66 @@ class RaceScene extends Phaser.Scene {
     }
 
     // ── Soccer ball graphics ──
+    // ── Casino dice graphics ──
+    drawDiceGfx(gfx, cx, cy, r, face) {
+        gfx.clear();
+        // die body — white square with rounded feel
+        gfx.fillStyle(0xfafafa, 1);
+        gfx.fillRoundedRect(cx - r, cy - r, r * 2, r * 2, r * 0.25);
+        gfx.lineStyle(r * 0.08, 0x333333, 1);
+        gfx.strokeRoundedRect(cx - r, cy - r, r * 2, r * 2, r * 0.25);
+        // pips
+        gfx.fillStyle(0x111111, 1);
+        const pip = (px, py) => gfx.fillCircle(cx + px * r * 0.55, cy + py * r * 0.55, r * 0.13);
+        const layouts = {
+            1: [[0,0]],
+            2: [[-1,-1],[1,1]],
+            3: [[-1,-1],[0,0],[1,1]],
+            4: [[-1,-1],[1,-1],[-1,1],[1,1]],
+            5: [[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],
+            6: [[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]],
+        };
+        (layouts[face] || layouts[1]).forEach(([px, py]) => pip(px, py));
+    }
+
+    // ── Casino dice collision + physics ──
+    updateCasinoDice(dt) {
+        const FRIC = 0.96, BOUNCE = 0.65;
+        const TW = this.td.W || GW, TH = this.td.H || GH;
+        this.casinoDice.forEach(d => {
+            this.trucks.forEach(t => {
+                const dist2 = Math.hypot(t.x - d.x, t.y - d.y);
+                if (dist2 < d.r + TS && dist2 > 0.1) {
+                    const nx = (d.x - t.x) / dist2, ny = (d.y - t.y) / dist2;
+                    const overlap = d.r + TS - dist2;
+                    d.x += nx * overlap; d.y += ny * overlap;
+                    const spd = Math.hypot(t.vx, t.vy);
+                    const imp = Math.max(t.vx * nx + t.vy * ny, spd * 0.3);
+                    d.vx += nx * imp * 1.6; d.vy += ny * imp * 1.6;
+                    t.vx -= nx * imp * 0.12; t.vy -= ny * imp * 0.12;
+                    d.spin = (t.vx * ny - t.vy * nx) * 0.25;
+                    // flip face when knocked hard enough
+                    if (spd > 0.5) d.face = (Math.random() * 6 + 1) | 0;
+                    SFX.ballKick();
+                }
+            });
+            d.vx *= Math.pow(FRIC, dt); d.vy *= Math.pow(FRIC, dt);
+            d.spin *= Math.pow(0.94, dt);
+            d.x += d.vx * dt; d.y += d.vy * dt;
+            if (d.x < d.r) { d.x = d.r; d.vx = Math.abs(d.vx) * BOUNCE; }
+            if (d.x > TW - d.r) { d.x = TW - d.r; d.vx = -Math.abs(d.vx) * BOUNCE; }
+            if (d.y < d.r) { d.y = d.r; d.vy = Math.abs(d.vy) * BOUNCE; }
+            if (d.y > TH - d.r) { d.y = TH - d.r; d.vy = -Math.abs(d.vy) * BOUNCE; }
+            d.gfx.x = d.x; d.gfx.y = d.y;
+            d.gfx.rotation += d.spin * dt * 0.1;
+            // redraw face if it changed (on knockover)
+            if (d._lastFace !== d.face) {
+                this.drawDiceGfx(d.gfx, 0, 0, d.r, d.face);
+                d._lastFace = d.face;
+            }
+        });
+    }
+
     drawSoccerBallGfx(gfx, cx, cy, r) {
         gfx.clear();
         // white base
