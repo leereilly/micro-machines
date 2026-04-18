@@ -1,8 +1,10 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/dark-logo.png">
-  <source media="(prefers-color-scheme: light)" srcset="images/light-logo.png">
-  <img alt="Micro Machines" src="images/light-logo.png">
-</picture>
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/dark-logo.png">
+    <source media="(prefers-color-scheme: light)" srcset="images/light-logo.png">
+    <img alt="Micro Machines" src="images/light-logo.png" style="width: 40%; height: auto;">
+  </picture>
+</div>
 
 A browser-based racing game built with [Phaser 3](https://phaser.io/), inspired by the classic Micro Machines series.
 
