@@ -1057,6 +1057,10 @@ class BootScene extends Phaser.Scene {
     constructor() { super('BootScene'); }
 
     preload() {
+        this._createLoadingUI();
+
+        this.load.on('progress', (value) => this._updateBar(value * 0.4));
+        this.load.on('fileprogress', (file) => this._setStatus(`Loading ${file.key}…`));
         this.load.on('loaderror', (file) => {
             console.warn('Asset load failed:', file.key, file.src || 'unknown source');
         });
@@ -1070,14 +1074,22 @@ class BootScene extends Phaser.Scene {
         this.load.image('avatar_frank', 'players/frank.png');
         this.load.image('avatar_hubot', 'players/hubot.png');
         this.load.image('avatar_mona', 'players/mona.png');
-
     }
 
     create() {
         this.genTrucks();
         this.genPickups();
-        this.genTracks();
-        this.scene.start('MainMenuScene');
+        this._updateBar(0.4);
+        this._setStatus('Building tracks…');
+        this._genTracksAsync(() => {
+            this._updateBar(1.0);
+            this._setStatus('Ready!');
+            // Warm browser cache for first 2 race tracks' music in background (non-blocking).
+            // fetch() shares the HTTP cache with Phaser's XHR audio loader so the
+            // downloads start now rather than blocking the first race transition.
+            TRACK_MUSIC.slice(0, 2).forEach(url => fetch(url).catch(() => {}));
+            this.time.delayedCall(300, () => this.scene.start('MainMenuScene'));
+        });
     }
 
     genTrucks() {
@@ -1223,12 +1235,12 @@ class BootScene extends Phaser.Scene {
     }
 
     genTracks() {
-        // Seeded random for consistent track features
-        let seed = 42;
-        function srand() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
+        TRACKS.forEach((t, idx) => this._genSingleTrack(t, idx));
+    }
 
-        TRACKS.forEach((t, idx) => {
-            seed = idx * 7919 + 42;
+    _genSingleTrack(t, idx) {
+        let seed = idx * 7919 + 42;
+        function srand() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
             // Procedural tracks: build cp fresh each session
             if (t.procedural && !t.cp.length) generateDeskCp(t);
             // per-track world dimensions (default to screen size)
@@ -2456,7 +2468,51 @@ class BootScene extends Phaser.Scene {
                 const ra = srand() * Math.PI * 2, rd = srand() * t.rw * 0.3;
                 t.pks.push({ x: pt.x + Math.cos(ra) * rd, y: pt.y + Math.sin(ra) * rd, type: 'nitro' });
             }
-        });
+    }
+
+    // ── Loading screen helpers ───────────────────────────────
+
+    _createLoadingUI() {
+        const cx = GW / 2, cy = GH / 2;
+        const barW = 480, barH = 20;
+        this.add.rectangle(cx, cy, GW, GH, 0x000000);
+        this.add.text(cx, cy - 100, 'MICRO MACHINES', {
+            fontSize: '52px', fontFamily: 'monospace', color: '#FFD700',
+            fontStyle: 'bold', stroke: '#6B3410', strokeThickness: 6,
+        }).setOrigin(0.5);
+        this.add.text(cx, cy - 40, 'Loading…', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#888',
+        }).setOrigin(0.5);
+        // track outline then fill so the fill overlaps cleanly
+        this.add.rectangle(cx, cy + 10, barW + 4, barH + 4, 0x333333);
+        this._loadBar = this.add.rectangle(cx - barW / 2, cy + 10, 1, barH, 0xFFD700).setOrigin(0, 0.5);
+        this._statusText = this.add.text(cx, cy + 45, '', {
+            fontSize: '14px', fontFamily: 'monospace', color: '#aaa',
+        }).setOrigin(0.5);
+        this._barW = barW;
+    }
+
+    _updateBar(fraction) {
+        if (this._loadBar) this._loadBar.width = this._barW * Math.min(fraction, 1);
+    }
+
+    _setStatus(msg) {
+        if (this._statusText) this._statusText.setText(msg);
+    }
+
+    // Generates tracks one per animation frame so the progress bar stays live.
+    _genTracksAsync(onComplete) {
+        let idx = 0;
+        const total = TRACKS.length;
+        const step = () => {
+            if (idx >= total) { onComplete(); return; }
+            this._updateBar(0.4 + 0.6 * (idx / total));
+            this._setStatus(`Building tracks… ${idx + 1} / ${total}`);
+            this._genSingleTrack(TRACKS[idx], idx);
+            idx++;
+            requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
     }
 }
 
