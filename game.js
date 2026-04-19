@@ -355,6 +355,9 @@ const TRACKS = [
 
 // ── GAME STATE ──────────────────────────────────────────────
 let gs = resetGameState();
+// Game options — persist across races (not reset with gs)
+let opts = { drift: false, guardrails: false, gravity: false };
+
 function resetGameState() {
     return {
         money: 200000, tires: 0, shocks: 0, acceleration: 0,
@@ -1049,7 +1052,64 @@ const SFX = (() => {
         o2.start(); o2.stop(c.currentTime + 0.55);
     }
 
-    return { countdownBeep, nitro, pickupMoney, pickupNitro, engineStart, engineUpdate, engineStop, rampJump, ballKick, subbuteoHit, ghostFreeze };
+    // guardrail scrape: metallic scratch
+    function guardrailBounce() {
+        const c = ac();
+        const buf = c.createBuffer(1, Math.floor(c.sampleRate * 0.1), c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+        const src = c.createBufferSource(); src.buffer = buf;
+        const bq = c.createBiquadFilter(); bq.type = 'bandpass'; bq.frequency.value = 3400; bq.Q.value = 2;
+        const hg = c.createGain();
+        hg.gain.setValueAtTime(0.28, c.currentTime);
+        hg.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
+        src.connect(bq); bq.connect(hg); hg.connect(c.destination); src.start();
+    }
+
+    // falling whoosh: descending sweep (plays when car goes off-track)
+    function fallWhoosh() {
+        const c = ac();
+        const o = c.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(380, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(55, c.currentTime + 0.75);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.2, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.8);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.82);
+        // harmonic
+        const o2 = c.createOscillator(); o2.type = 'triangle';
+        o2.frequency.setValueAtTime(220, c.currentTime);
+        o2.frequency.exponentialRampToValueAtTime(40, c.currentTime + 0.6);
+        const g2 = c.createGain();
+        g2.gain.setValueAtTime(0.1, c.currentTime);
+        g2.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.7);
+        o2.connect(g2); g2.connect(c.destination); o2.start(); o2.stop(c.currentTime + 0.75);
+    }
+
+    // landing thud: deep boom + noise for crash landing
+    function landThud() {
+        const c = ac();
+        const o = c.createOscillator(); o.type = 'sine';
+        o.frequency.setValueAtTime(130, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(38, c.currentTime + 0.28);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.5, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.32);
+        o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.35);
+        // percussive noise burst
+        const buf = c.createBuffer(1, Math.floor(c.sampleRate * 0.18), c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.7;
+        const src = c.createBufferSource(); src.buffer = buf;
+        const ng = c.createGain();
+        ng.gain.setValueAtTime(0.35, c.currentTime);
+        ng.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.2);
+        src.connect(ng); ng.connect(c.destination); src.start();
+    }
+
+    return { countdownBeep, nitro, pickupMoney, pickupNitro, engineStart, engineUpdate, engineStop, rampJump, ballKick, subbuteoHit, ghostFreeze, guardrailBounce, fallWhoosh, landThud };
 })();
 
 // ── BOOT SCENE ──────────────────────────────────────────────
@@ -2542,7 +2602,7 @@ class MainMenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Menu items
-        const ITEMS = ['PLAY', 'ABOUT', 'CREDITS', 'CONTROLS'];
+        const ITEMS = ['PLAY', 'OPTIONS', 'ABOUT', 'CREDITS', 'CONTROLS'];
         this.menuSel = 0;
         this.currentPanel = null;
 
@@ -2563,7 +2623,8 @@ class MainMenuScene extends Phaser.Scene {
         this.aboutPanel    = this._buildAbout();
         this.creditsPanel  = this._buildCredits();
         this.controlsPanel = this._buildControls();
-        [this.aboutPanel, this.creditsPanel, this.controlsPanel].forEach(p => p.setVisible(false));
+        this.optionsPanel  = this._buildOptions();
+        [this.aboutPanel, this.creditsPanel, this.controlsPanel, this.optionsPanel].forEach(p => p.setVisible(false));
 
         // Track cheat code (*NN)
         const mapSelect = this.add.text(GW / 2, GH - 36, '', {
@@ -2598,10 +2659,26 @@ class MainMenuScene extends Phaser.Scene {
             }
         });
 
-        this.input.keyboard.on('keydown-UP',    () => this._nav(-1));
-        this.input.keyboard.on('keydown-DOWN',  () => this._nav(1));
-        this.input.keyboard.on('keydown-ENTER', () => this._select());
-        this.input.keyboard.on('keydown-SPACE', () => { if (!this.currentPanel) this._select(); });
+        this.input.keyboard.on('keydown-UP', () => {
+            if (this.currentPanel === this.optionsPanel) {
+                this.optSel = Math.max(0, this.optSel - 1);
+                this._updateOptCursor();
+            } else { this._nav(-1); }
+        });
+        this.input.keyboard.on('keydown-DOWN', () => {
+            if (this.currentPanel === this.optionsPanel) {
+                this.optSel = Math.min(2, this.optSel + 1);
+                this._updateOptCursor();
+            } else { this._nav(1); }
+        });
+        this.input.keyboard.on('keydown-ENTER', () => {
+            if (this.currentPanel === this.optionsPanel) this._toggleOpt(this.optSel);
+            else this._select();
+        });
+        this.input.keyboard.on('keydown-SPACE', () => {
+            if (this.currentPanel === this.optionsPanel) this._toggleOpt(this.optSel);
+            else if (!this.currentPanel) this._select();
+        });
         this.input.keyboard.on('keydown-ESC',   () => this._showMain());
     }
 
@@ -2617,9 +2694,10 @@ class MainMenuScene extends Phaser.Scene {
         if (this.currentPanel) return;
         switch (this.menuSel) {
             case 0: gs = resetGameState(); this.scene.start('PlayerSelectScene'); break;
-            case 1: this._showPanel(this.aboutPanel);    break;
-            case 2: this._showPanel(this.creditsPanel);  break;
-            case 3: this._showPanel(this.controlsPanel); break;
+            case 1: this.optSel = 0; this._updateOptCursor(); this._showPanel(this.optionsPanel); break;
+            case 2: this._showPanel(this.aboutPanel);    break;
+            case 3: this._showPanel(this.creditsPanel);  break;
+            case 4: this._showPanel(this.controlsPanel); break;
         }
     }
 
@@ -2637,6 +2715,75 @@ class MainMenuScene extends Phaser.Scene {
         }
         this.menuTexts.forEach(t => t.setVisible(true));
         this.cursor.setVisible(true);
+    }
+
+    _toggleOpt(idx) {
+        const KEYS = ['drift', 'guardrails', 'gravity'];
+        const key = KEYS[idx];
+        opts[key] = !opts[key];
+        const entry = this.optTexts[idx];
+        entry.check.setText(opts[key] ? '[✓]' : '[ ]').setColor(opts[key] ? '#00ff88' : '#444');
+        entry.label.setColor(opts[key] ? '#FFD700' : '#888');
+    }
+
+    _updateOptCursor() {
+        if (!this.optCursor || !this.optTexts) return;
+        this.optCursor.setY(330 + this.optSel * 90);
+    }
+
+    _buildOptions() {
+        const c = this.add.container(0, 0);
+        const addTxt = (x, y, txt, style) => {
+            const t = this.add.text(x, y, txt, { fontFamily: 'monospace', ...style });
+            c.add(t); return t;
+        };
+
+        addTxt(GW / 2, 180, 'OPTIONS', {
+            fontSize: '36px', color: '#FFD700', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        addTxt(GW / 2, 228, 'All options off by default — mix for maximum chaos', {
+            fontSize: '13px', color: '#555', fontStyle: 'italic',
+        }).setOrigin(0.5);
+
+        const OPTIONS = [
+            { key: 'drift',      label: 'DRIFT MODE',  desc: 'Wild skid turns — hold your nerve!' },
+            { key: 'guardrails', label: 'GUARDRAILS',  desc: 'Bounce off road edges like bumper cars' },
+            { key: 'gravity',    label: 'GRAVITY',     desc: 'Fall off track, shrink, respawn with a bang' },
+        ];
+
+        this.optSel = 0;
+        this.optTexts = [];
+
+        OPTIONS.forEach((opt, i) => {
+            const oy = 330 + i * 90;
+            const checkTxt = addTxt(GW / 2 - 155, oy, opts[opt.key] ? '[✓]' : '[ ]', {
+                fontSize: '24px', color: opts[opt.key] ? '#00ff88' : '#444',
+            }).setOrigin(0.5);
+            const labelTxt = addTxt(GW / 2 - 105, oy, opt.label, {
+                fontSize: '24px', color: opts[opt.key] ? '#FFD700' : '#888', fontStyle: 'bold',
+            }).setOrigin(0, 0.5);
+            addTxt(GW / 2 - 105, oy + 26, opt.desc, {
+                fontSize: '13px', color: '#555',
+            }).setOrigin(0, 0.5);
+            this.optTexts.push({ check: checkTxt, label: labelTxt, key: opt.key });
+
+            // Mouse click zone
+            const zone = this.add.zone(GW / 2, oy + 10, GW * 0.65, 60).setInteractive({ useHandCursor: true });
+            c.add(zone);
+            zone.on('pointerover', () => { this.optSel = i; this._updateOptCursor(); });
+            zone.on('pointerdown', () => { this.optSel = i; this._toggleOpt(i); });
+        });
+
+        // Cursor arrow
+        this.optCursor = addTxt(GW / 2 - 195, 330, '▶', {
+            fontSize: '22px', color: '#FFD700',
+        }).setOrigin(0.5);
+
+        addTxt(GW / 2, GH - 46, '↑ ↓  navigate   ENTER / SPACE  toggle   ESC  back', {
+            fontSize: '14px', color: '#444',
+        }).setOrigin(0.5);
+
+        return c;
     }
 
     _buildAbout() {
@@ -3014,6 +3161,9 @@ class RaceScene extends Phaser.Scene {
                 aiSkill:  isP ? 1 : [0, 0.95, 0.72, 0.48][i],
                 aiPhase:  Math.random() * Math.PI * 2,
                 frozenTimer: 0,
+                // Options state
+                lastRoadX: sp.x, lastRoadY: sp.y, lastRoadA: sp.a,
+                falling: false, _guardrailCd: 0, _fallGrace: 0,
             };
             this.syncSprite(t);
             this.trucks.push(t);
@@ -3213,6 +3363,16 @@ class RaceScene extends Phaser.Scene {
                 this.syncSprite(t);
                 return;
             }
+            // falling — physics handled by tween, just sync sprite
+            if (t.falling) { this.syncSprite(t); return; }
+
+            // Track last safe position (any non-offroad terrain)
+            if (this.terrain(t.x, t.y) !== 'offroad') {
+                t.lastRoadX = t.x; t.lastRoadY = t.y; t.lastRoadA = t.a;
+            }
+            // Decay fall grace timer
+            if (t._fallGrace > 0) t._fallGrace -= dt;
+
             if (t.isP) this.drivePlayer(t, dt);
             else this.driveAI(t, dt);
             this.physics(t, dt);
@@ -3239,10 +3399,20 @@ class RaceScene extends Phaser.Scene {
     drivePlayer(t, dt) {
         const spd = Math.hypot(t.vx, t.vy);
         const sf = Math.min(1, spd / (t.maxSpd * 0.6 + 0.01));
-        // more responsive steering at low speed, tighter at high speed
-        const steer = t.hand * dt * (0.55 + 0.55 * sf);
+        // drift mode: wider steering arc for counter-steering
+        const steer = t.hand * dt * (opts.drift ? (0.85 + 0.75 * sf) : (0.55 + 0.55 * sf));
         if (this.cur.left.isDown) t.a -= steer;
         if (this.cur.right.isDown) t.a += steer;
+
+        // Drift mode: outward lateral kick when steering at speed — initiates/maintains slide
+        if (opts.drift && spd > 0.8) {
+            const turn = this.cur.left.isDown ? -1 : this.cur.right.isDown ? 1 : 0;
+            if (turn !== 0) {
+                const kick = 0.10 * dt * Math.min(spd, t.maxSpd);
+                t.vx += Math.sin(t.a) * turn * kick;
+                t.vy -= Math.cos(t.a) * turn * kick;
+            }
+        }
 
         if (this.cur.up.isDown) {
             const am = t.nAct ? 1.8 : 1.0;
@@ -3368,18 +3538,24 @@ class RaceScene extends Phaser.Scene {
             if (Math.random() < 0.7) this.nitroFX(t);
         }
 
+        // Decrement guardrail sound cooldown
+        if (t._guardrailCd > 0) t._guardrailCd -= dt;
+
         // decompose velocity
         const fx = Math.cos(t.a), fy = Math.sin(t.a);
         const rx = -Math.sin(t.a), ry = Math.cos(t.a);
         const fwd = t.vx * fx + t.vy * fy;
         const lat = t.vx * rx + t.vy * ry;
 
-        // sharp skidding — leave tire marks when there's real lateral velocity
-        if (t.isP && Math.abs(lat) > 1.0 && Math.hypot(t.vx, t.vy) > 1.2) {
+        // Drift mode: lower skid threshold — constant spectacular tire marks
+        const skidLat = opts.drift ? 0.25 : 1.0;
+        const skidSpd = opts.drift ? 0.35 : 1.2;
+        if (t.isP && Math.abs(lat) > skidLat && Math.hypot(t.vx, t.vy) > skidSpd) {
             this.spawnSkid(t);
         }
 
-        const latFric = Math.pow(t.stab, dt);
+        // Drift mode: much higher lateral friction retention = more slide
+        const latFric = opts.drift ? Math.pow(0.984, dt) : Math.pow(t.stab, dt);
         const fwdFric = Math.pow(0.994, dt);
         const nf = fwd * fwdFric, nl = lat * latFric;
         t.vx = nf * fx + nl * rx;
@@ -3390,9 +3566,30 @@ class RaceScene extends Phaser.Scene {
         const eMax = (t.nAct ? t.maxSpd * 1.5 : t.maxSpd) * t.tMult;
         if (spd > eMax) { const s = eMax / spd; t.vx *= s; t.vy *= s; }
 
-        const nx = t.x + t.vx * dt, ny = t.y + t.vy * dt;
+        let nx = t.x + t.vx * dt, ny = t.y + t.vy * dt;
 
-        // terrain
+        // ── GUARDRAILS: bounce off road edge before applying terrain effects
+        if (opts.guardrails && this.terrain(nx, ny) === 'offroad') {
+            const testX = this.terrain(nx, t.y);
+            const testY = this.terrain(t.x, ny);
+            if (testX !== 'offroad') {
+                // Y movement caused offroad — bounce Y
+                t.vy = -t.vy * 0.5; nx = nx; ny = t.y;
+            } else if (testY !== 'offroad') {
+                // X movement caused offroad — bounce X
+                t.vx = -t.vx * 0.5; nx = t.x; ny = ny;
+            } else {
+                // Corner — bounce both
+                t.vx *= -0.5; t.vy *= -0.5; nx = t.x; ny = t.y;
+            }
+            if (t.isP && t._guardrailCd <= 0) {
+                this.spawnGuardrailSparks(t);
+                SFX.guardrailBounce();
+                t._guardrailCd = 9;
+            }
+        }
+
+        // terrain (computed at corrected position)
         const ter = this.terrain(nx, ny);
         switch (ter) {
             case 'road': t.tMult = 1.0; break;
@@ -3403,13 +3600,20 @@ class RaceScene extends Phaser.Scene {
                 break;
         }
 
+        // ── GRAVITY: fall off track and respawn
+        if (opts.gravity && ter === 'offroad' && !t.falling && !t.fin && t._fallGrace <= 0) {
+            t.falling = true;
+            t.vx = 0; t.vy = 0;
+            this.triggerFall(t);
+        }
+
         // boundary
         t.x = Phaser.Math.Clamp(nx, 8, this.td.W - 8);
         t.y = Phaser.Math.Clamp(ny, 8, this.td.H - 8);
 
-        // truck-truck collisions
+        // truck-truck collisions (skip falling trucks — they're "in the air")
         for (const o of this.trucks) {
-            if (o === t) continue;
+            if (o === t || o.falling) continue;
             const d = dist(t, o);
             if (d < TS * 2 && d > 0.1) {
                 const push = (TS * 2 - d) * 0.3;
@@ -3431,7 +3635,7 @@ class RaceScene extends Phaser.Scene {
         const BOOST_CD = 30, RAMP_CD = 60;
 
         this.trucks.forEach(t => {
-            if (t.fin || t.frozenTimer > 0) return;
+            if (t.fin || t.frozenTimer > 0 || t.falling) return;
             // Boost chevrons (">>" markers on the road)
             (this.td.boosts || []).forEach((b, i) => {
                 const st = this.boostState[i];
@@ -3582,6 +3786,94 @@ class RaceScene extends Phaser.Scene {
             const m = this.add.rectangle(sx, sy, 3, 3, color, 0.4).setDepth(2);
             m._life = 120; this.dust.push(m);
         }
+    }
+
+    // Guardrail collision sparks
+    spawnGuardrailSparks(t) {
+        for (let i = 0; i < 7; i++) {
+            const angle = t.a + Math.PI + (Math.random() - 0.5) * 2.0;
+            const spark = this.add.rectangle(
+                t.x + Math.cos(angle) * 10, t.y + Math.sin(angle) * 10,
+                2, 2, 0xffdd00, 1
+            ).setDepth(20);
+            spark._life = 6 + Math.random() * 10;
+            this.dust.push(spark);
+        }
+    }
+
+    // Landing smoke burst (gravity respawn)
+    spawnLandingSmoke(x, y) {
+        for (let i = 0; i < 18; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 6 + Math.random() * 22;
+            const r = 3 + Math.random() * 7;
+            const smoke = this.add.circle(x, y, r, 0xcccccc, 0.8).setDepth(18);
+            this.tweens.add({
+                targets: smoke,
+                x: x + Math.cos(angle) * dist,
+                y: y + Math.sin(angle) * dist - 14,
+                scaleX: 2.8, scaleY: 2.8,
+                alpha: 0,
+                duration: 550 + Math.random() * 350,
+                ease: 'Power1',
+                onComplete: () => smoke.destroy(),
+            });
+        }
+    }
+
+    // Gravity: shrink, teleport to last road position, pop back up with a bang
+    triggerFall(t) {
+        const rx = t.lastRoadX, ry = t.lastRoadY, ra = t.lastRoadA;
+
+        // Kill any scale tweens (e.g. ramp animation) and reset to clean size
+        this.tweens.killTweensOf(t.spr);
+        t.spr.setDisplaySize(TRUCK_W, TRUCK_H);
+        const normSx = t.spr.scaleX, normSy = t.spr.scaleY;
+
+        if (t.isP) {
+            SFX.fallWhoosh();
+            this.cameras.main.shake(120, 0.005);
+        }
+
+        // Shrink to a dot — simulate falling into the distance
+        this.tweens.add({
+            targets: t.spr,
+            scaleX: normSx * 0.04,
+            scaleY: normSy * 0.04,
+            duration: 680,
+            ease: 'Power2.easeIn',
+            onComplete: () => {
+                // Teleport to last safe position and reset state
+                t.x = rx; t.y = ry; t.a = ra;
+                t.vx = 0; t.vy = 0;
+                t.nAct = false; t.nTmr = 0;
+                t.tMult = 1.0;
+                t.spr.x = rx; t.spr.y = ry;
+
+                this.spawnLandingSmoke(rx, ry);
+
+                if (t.isP) {
+                    SFX.landThud();
+                    this.cameras.main.shake(250, 0.018);
+                    this.floatTxt(rx, ry - 38, '💥 BACK ON TRACK!', '#FFD700');
+                    this.cameras.main.flash(180, 255, 140, 0, true);
+                }
+
+                // Pop back up with a bouncy scale
+                this.tweens.add({
+                    targets: t.spr,
+                    scaleX: normSx,
+                    scaleY: normSy,
+                    duration: 420,
+                    ease: 'Back.easeOut',
+                    onComplete: () => {
+                        t.spr.setDisplaySize(TRUCK_W, TRUCK_H); // snap to exact size
+                        t.falling = false;
+                        t._fallGrace = 55; // brief immunity to prevent immediate re-fall
+                    },
+                });
+            },
+        });
     }
 
     nitroFX(t) {

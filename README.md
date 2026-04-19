@@ -5,7 +5,7 @@
   </picture>
 </div>
 
-A browser-based racing game built with [Phaser 3](https://phaser.io/), inspired by the classic Micro Machines series.
+A browser-based racing game built with [Phaser 3](https://phaser.io/), GitHub Copilot, Claude Sonnet 4.6 + 4.7. Inspired by the classic [Micro Machines](https://highwayforever.wordpress.com/2022/03/04/micro-machines-codemasters-1991/) and [Ivan "Ironman" Stewart's Super Off Road](https://vintagearcade.net/shop/arcade-games/super-off-road-arcade-game/) games. Built for [GameDev.js 2026 game jam](https://itch.io/jam/gamedevjs-2026).
 
 ## Play
 
