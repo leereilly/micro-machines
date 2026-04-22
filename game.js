@@ -3163,7 +3163,7 @@ class RaceScene extends Phaser.Scene {
                 frozenTimer: 0,
                 // Options state
                 lastRoadX: sp.x, lastRoadY: sp.y, lastRoadA: sp.a,
-                falling: false, _guardrailCd: 0, _fallGrace: 0,
+                falling: false, _guardrailCd: 0, _fallGrace: 0, _fallMs: 0, _fallVx: 0, _fallVy: 0,
             };
             this.syncSprite(t);
             this.trucks.push(t);
@@ -3363,8 +3363,19 @@ class RaceScene extends Phaser.Scene {
                 this.syncSprite(t);
                 return;
             }
-            // falling — physics handled by tween, just sync sprite
-            if (t.falling) { this.syncSprite(t); return; }
+            // falling — keep momentum while shrinking
+            if (t.falling) {
+                if (t._fallMs > 0) {
+                    t._fallMs -= delta;
+                    const frac = Math.max(0, t._fallMs / 680);
+                    t.x += t._fallVx * frac * dt;
+                    t.y += t._fallVy * frac * dt;
+                    t.x = Phaser.Math.Clamp(t.x, 8, this.td.W - 8);
+                    t.y = Phaser.Math.Clamp(t.y, 8, this.td.H - 8);
+                }
+                this.syncSprite(t);
+                return;
+            }
 
             // Track last safe position (any non-offroad terrain)
             if (this.terrain(t.x, t.y) !== 'offroad') {
@@ -3399,20 +3410,10 @@ class RaceScene extends Phaser.Scene {
     drivePlayer(t, dt) {
         const spd = Math.hypot(t.vx, t.vy);
         const sf = Math.min(1, spd / (t.maxSpd * 0.6 + 0.01));
-        // drift mode: wider steering arc for counter-steering
-        const steer = t.hand * dt * (opts.drift ? (0.85 + 0.75 * sf) : (0.55 + 0.55 * sf));
+        // drift mode: slightly wider steering arc to initiate oversteer
+        const steer = t.hand * dt * (opts.drift ? (0.75 + 0.75 * sf) : (0.55 + 0.55 * sf));
         if (this.cur.left.isDown) t.a -= steer;
         if (this.cur.right.isDown) t.a += steer;
-
-        // Drift mode: outward lateral kick when steering at speed — initiates/maintains slide
-        if (opts.drift && spd > 0.8) {
-            const turn = this.cur.left.isDown ? -1 : this.cur.right.isDown ? 1 : 0;
-            if (turn !== 0) {
-                const kick = 0.10 * dt * Math.min(spd, t.maxSpd);
-                t.vx += Math.sin(t.a) * turn * kick;
-                t.vy -= Math.cos(t.a) * turn * kick;
-            }
-        }
 
         if (this.cur.up.isDown) {
             const am = t.nAct ? 1.8 : 1.0;
@@ -3554,8 +3555,8 @@ class RaceScene extends Phaser.Scene {
             this.spawnSkid(t);
         }
 
-        // Drift mode: much higher lateral friction retention = more slide
-        const latFric = opts.drift ? Math.pow(0.984, dt) : Math.pow(t.stab, dt);
+        // Drift mode: lower lateral friction — velocity lags behind heading = natural slide
+        const latFric = opts.drift ? Math.pow(0.93, dt) : Math.pow(t.stab, dt);
         const fwdFric = Math.pow(0.994, dt);
         const nf = fwd * fwdFric, nl = lat * latFric;
         t.vx = nf * fx + nl * rx;
@@ -3568,19 +3569,16 @@ class RaceScene extends Phaser.Scene {
 
         let nx = t.x + t.vx * dt, ny = t.y + t.vy * dt;
 
-        // ── GUARDRAILS: bounce off road edge before applying terrain effects
+        // ── GUARDRAILS: slide along road edge (kill into-wall component, keep tangential)
         if (opts.guardrails && this.terrain(nx, ny) === 'offroad') {
-            const testX = this.terrain(nx, t.y);
-            const testY = this.terrain(t.x, ny);
-            if (testX !== 'offroad') {
-                // Y movement caused offroad — bounce Y
-                t.vy = -t.vy * 0.5; nx = nx; ny = t.y;
-            } else if (testY !== 'offroad') {
-                // X movement caused offroad — bounce X
-                t.vx = -t.vx * 0.5; nx = t.x; ny = ny;
+            const xBlocked = this.terrain(nx, t.y) === 'offroad';  // X alone goes offroad → vertical wall
+            const yBlocked = this.terrain(t.x, ny) === 'offroad';  // Y alone goes offroad → horizontal wall
+            if (xBlocked && !yBlocked) {
+                t.vx = 0; nx = t.x;          // vertical wall: kill X, keep Y (slide along wall)
+            } else if (yBlocked && !xBlocked) {
+                t.vy = 0; ny = t.y;          // horizontal wall: kill Y, keep X (slide along wall)
             } else {
-                // Corner — bounce both
-                t.vx *= -0.5; t.vy *= -0.5; nx = t.x; ny = t.y;
+                t.vx = 0; t.vy = 0; nx = t.x; ny = t.y;  // corner: stop
             }
             if (t.isP && t._guardrailCd <= 0) {
                 this.spawnGuardrailSparks(t);
@@ -3600,11 +3598,25 @@ class RaceScene extends Phaser.Scene {
                 break;
         }
 
-        // ── GRAVITY: fall off track and respawn
+        // ── GRAVITY: fall off track only if the whole car is completely off track
+        // Check all four corners of the car to ensure the entire car is offroad
         if (opts.gravity && ter === 'offroad' && !t.falling && !t.fin && t._fallGrace <= 0) {
-            t.falling = true;
-            t.vx = 0; t.vy = 0;
-            this.triggerFall(t);
+            const carHalfW = TRUCK_W / 2;
+            const carHalfH = TRUCK_H / 2;
+            const corners = [
+                { x: nx - carHalfW, y: ny - carHalfH },  // top-left
+                { x: nx + carHalfW, y: ny - carHalfH },  // top-right
+                { x: nx - carHalfW, y: ny + carHalfH },  // bottom-left
+                { x: nx + carHalfW, y: ny + carHalfH }   // bottom-right
+            ];
+            // Only trigger fall if all four corners are offroad
+            const allCornersOffroad = corners.every(c => this.terrain(c.x, c.y) === 'offroad');
+            if (allCornersOffroad) {
+                t.falling = true;
+                t._fallVx = t.vx; t._fallVy = t.vy;  // save momentum before zeroing
+                t.vx = 0; t.vy = 0;
+                this.triggerFall(t);
+            }
         }
 
         // boundary
@@ -3823,7 +3835,29 @@ class RaceScene extends Phaser.Scene {
 
     // Gravity: shrink, teleport to last road position, pop back up with a bang
     triggerFall(t) {
-        const rx = t.lastRoadX, ry = t.lastRoadY, ra = t.lastRoadA;
+        const rx = t.lastRoadX, ry = t.lastRoadY;
+
+        // Find the nearest waypoint segment to determine track-aligned respawn angle
+        const wp = this.td.wp;
+        let bestDist = Infinity, bestI = 0;
+        for (let i = 0; i < wp.length; i++) {
+            const ax = wp[i].x, ay = wp[i].y;
+            const bx = wp[(i + 1) % wp.length].x, by = wp[(i + 1) % wp.length].y;
+            const abx = bx - ax, aby = by - ay;
+            const abLen2 = abx * abx + aby * aby;
+            if (abLen2 < 1) continue;
+            let tp = ((rx - ax) * abx + (ry - ay) * aby) / abLen2;
+            tp = Phaser.Math.Clamp(tp, 0, 1);
+            const d = Math.hypot(ax + tp * abx - rx, ay + tp * aby - ry);
+            if (d < bestDist) { bestDist = d; bestI = i; }
+        }
+        const ra = Math.atan2(
+            wp[(bestI + 1) % wp.length].y - wp[bestI].y,
+            wp[(bestI + 1) % wp.length].x - wp[bestI].x
+        );
+
+        // Initialize fall timer (matches tween duration)
+        t._fallMs = 680;
 
         // Kill any scale tweens (e.g. ramp animation) and reset to clean size
         this.tweens.killTweensOf(t.spr);
