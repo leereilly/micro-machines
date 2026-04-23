@@ -198,8 +198,14 @@ Open `index.html` in a browser.
     </tr>
   </tbody>
 </table>
-
 <!-- MAPS_END -->
+
+## LICENSE
+
+MIT.
+
+Files in the `players/` directory are copyrighted by their respective owners and are included here for reference/attribution purposes only. All rights remain with their respective copyright holders. 
+
 ## Credits
 
 - **Kenney** — game assets ([Racing Pack](https://kenney.nl/assets/racing-pack))
