@@ -9,10 +9,19 @@
         body { background: #000; overflow: hidden; }
         #game-container { width: 100vw; height: 100vh; }
     </style>
+    <script>
+        // Handle screen orientation lock errors gracefully
+        window.addEventListener('unhandledrejection', (event) => {
+            if (event.reason && event.reason.name === 'NotSupportedError' && 
+                event.reason.message && event.reason.message.includes('screen.orientation.lock')) {
+                event.preventDefault();
+                console.warn('Screen orientation lock not supported on this device');
+            }
+        });
+    </script>
 </head>
 <body>
     <div id="game-container"></div>
-    <script src="node_modules/phaser/dist/phaser.min.js"></script>
-    <script src="game.js"></script>
+    <script src="dist/bundle.js"></script>
 </body>
 </html>

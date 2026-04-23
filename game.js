@@ -339,11 +339,11 @@ const TRACKS = [
         mud: [{x:1500,y:900,r:30},{x:400,y:500,r:28},{x:1700,y:1100,r:26}],
     },
     {
-        // ── DESK CHAOS — procedurally generated, single lap, ~10× NEON DRIVE ──
+        // ── DESK CHAOS — procedurally generated, three laps, ~10× NEON DRIVE ──
         name: 'DESK CHAOS',
         desk: true,
         procedural: true,
-        laps: 1,
+        laps: 3,
         W: TEN_W, H: TEN_H,
         rw: ROAD_W + 4,
         cpxScale: TEN_SCALE,
@@ -4646,6 +4646,7 @@ const config = {
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
+        fullscreenTarget: 'parent',
     },
     pixelArt: true,
 };
