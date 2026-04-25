@@ -15,6 +15,7 @@
 'use strict';
 
 const { chromium } = require('playwright');
+const esbuild = require('esbuild');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -169,20 +170,35 @@ async function main() {
   page.on('console', () => {});
   page.on('pageerror', err => console.warn('Page error:', err.message));
 
-  // Intercept game.js to:
-  //  1. Expose the Phaser game instance as window.__phaserGame
-  //  2. Force Canvas renderer (more reliable in headless environments)
-  await page.route('**/game.js', async route => {
-    const response = await route.fetch();
-    let body = await response.text();
-
-    body = body.replace(/type\s*:\s*Phaser\.AUTO/, 'type: Phaser.CANVAS');
-    body = body.replace(
+  // Build a fresh bundle from current game.js, with hooks for screenshots:
+  //  - Force Canvas renderer (more reliable in headless environments)
+  //  - Expose Phaser game instance and TRACKS array for the harness
+  console.log('Building bundle for screenshots…');
+  const gameSrc = fs.readFileSync(path.join(ROOT, 'game.js'), 'utf8')
+    .replace(/type\s*:\s*Phaser\.AUTO/, 'type: Phaser.CANVAS')
+    .replace(
       /^new Phaser\.Game\(config\);/m,
-      'window.__phaserGame = new Phaser.Game(config);',
+      'globalThis.__phaserGame = new Phaser.Game(config); globalThis.TRACKS = TRACKS;',
     );
+  const wrapped = `import Phaser from 'phaser';\n${gameSrc}\n`;
+  const buildResult = await esbuild.build({
+    stdin: { contents: wrapped, resolveDir: ROOT, loader: 'js' },
+    bundle: true,
+    write: false,
+    platform: 'browser',
+    target: 'es2020',
+    minify: false,
+    sourcemap: false,
+  });
+  const bundleJs = buildResult.outputFiles[0].text;
 
-    await route.fulfill({ response, body });
+  // Intercept the bundle URL and serve our screenshot-instrumented build instead
+  await page.route('**/dist/bundle.js', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: bundleJs,
+    });
   });
 
   try {

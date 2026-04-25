@@ -198,6 +198,7 @@ Open `index.html` in a browser.
     </tr>
   </tbody>
 </table>
+
 <!-- MAPS_END -->
 
 ## LICENSE

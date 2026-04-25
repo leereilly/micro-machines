@@ -356,7 +356,7 @@ const TRACKS = [
 // ── GAME STATE ──────────────────────────────────────────────
 let gs = resetGameState();
 // Game options — persist across races (not reset with gs)
-let opts = { drift: false, guardrails: false, gravity: false };
+let opts = { drift: false, guardrails: false, gravity: false, laps: 1 };
 
 function resetGameState() {
     return {
@@ -1339,6 +1339,119 @@ class BootScene extends Phaser.Scene {
             const vx = vc.getContext('2d');
             if (cs !== 1) vx.scale(1 / cs, 1 / cs);
 
+            // ── tiny scenery sprites (bugs, plants, litter) shared across tracks ──
+            // All drawn in world coords; callers pass position, optional rotation, and scale.
+            const drawAnt = (px, py, ang, sc) => {
+                vx.save(); vx.translate(px, py); vx.rotate(ang); vx.scale(sc, sc);
+                vx.fillStyle = '#1a0a05';
+                vx.beginPath(); vx.arc(4, 0, 1.6, 0, Math.PI * 2); vx.fill();             // head
+                vx.beginPath(); vx.arc(0, 0, 1.4, 0, Math.PI * 2); vx.fill();             // thorax
+                vx.beginPath(); vx.ellipse(-3.2, 0, 2.4, 1.7, 0, 0, Math.PI * 2); vx.fill(); // abdomen
+                vx.strokeStyle = '#1a0a05'; vx.lineWidth = 0.5;
+                for (let s = -1; s <= 1; s++) {
+                    vx.beginPath(); vx.moveTo(0, 0); vx.lineTo(s * 1.2, 3); vx.stroke();
+                    vx.beginPath(); vx.moveTo(0, 0); vx.lineTo(s * 1.2, -3); vx.stroke();
+                }
+                vx.beginPath(); vx.moveTo(4, 0); vx.lineTo(6, -1.6); vx.stroke();
+                vx.beginPath(); vx.moveTo(4, 0); vx.lineTo(6, 1.6); vx.stroke();
+                vx.restore();
+            };
+            const drawSpider = (px, py, ang, sc) => {
+                vx.save(); vx.translate(px, py); vx.rotate(ang); vx.scale(sc, sc);
+                vx.strokeStyle = '#0a0a0a'; vx.lineWidth = 0.6; vx.lineCap = 'round';
+                for (let l = 0; l < 4; l++) {
+                    const a = (l / 4) * Math.PI - Math.PI / 2 + 0.4;
+                    const lx = Math.cos(a) * 6, ly = Math.sin(a) * 6;
+                    vx.beginPath(); vx.moveTo(0, 0); vx.quadraticCurveTo(lx * 0.6, ly * 0.6 - 1, lx, ly); vx.stroke();
+                    vx.beginPath(); vx.moveTo(0, 0); vx.quadraticCurveTo(-lx * 0.6, ly * 0.6 - 1, -lx, ly); vx.stroke();
+                }
+                vx.fillStyle = '#0a0a0a';
+                vx.beginPath(); vx.ellipse(0, 0.5, 2.6, 3, 0, 0, Math.PI * 2); vx.fill();
+                vx.beginPath(); vx.arc(0, -2.5, 1.3, 0, Math.PI * 2); vx.fill();
+                vx.restore();
+            };
+            const drawDaisy = (px, py, sc) => {
+                vx.save(); vx.translate(px, py); vx.scale(sc, sc);
+                vx.fillStyle = '#ffffff';
+                for (let p = 0; p < 6; p++) {
+                    const a = (p / 6) * Math.PI * 2;
+                    vx.beginPath();
+                    vx.ellipse(Math.cos(a) * 3, Math.sin(a) * 3, 2.4, 1.3, a, 0, Math.PI * 2);
+                    vx.fill();
+                }
+                vx.fillStyle = '#f0c020';
+                vx.beginPath(); vx.arc(0, 0, 1.7, 0, Math.PI * 2); vx.fill();
+                vx.fillStyle = 'rgba(180,120,0,0.6)';
+                vx.beginPath(); vx.arc(0, 0, 1.7, 0, Math.PI * 2); vx.stroke();
+                vx.restore();
+            };
+            const drawMushroom = (px, py, sc) => {
+                vx.save(); vx.translate(px, py); vx.scale(sc, sc);
+                // shadow
+                vx.fillStyle = 'rgba(0,0,0,0.25)';
+                vx.beginPath(); vx.ellipse(0, 4.5, 4, 1.2, 0, 0, Math.PI * 2); vx.fill();
+                // stem
+                vx.fillStyle = '#f4ecd6';
+                vx.fillRect(-1.6, 0, 3.2, 4.5);
+                // cap
+                vx.fillStyle = '#cc2020';
+                vx.beginPath();
+                vx.moveTo(-4.2, 1); vx.quadraticCurveTo(0, -5.5, 4.2, 1);
+                vx.closePath(); vx.fill();
+                // spots
+                vx.fillStyle = '#ffffff';
+                vx.beginPath(); vx.arc(-1.6, -1.4, 0.7, 0, Math.PI * 2); vx.fill();
+                vx.beginPath(); vx.arc(1.8, -0.7, 0.6, 0, Math.PI * 2); vx.fill();
+                vx.beginPath(); vx.arc(0.4, -2.6, 0.5, 0, Math.PI * 2); vx.fill();
+                vx.restore();
+            };
+            const drawCigarette = (px, py, ang, sc) => {
+                vx.save(); vx.translate(px, py); vx.rotate(ang); vx.scale(sc, sc);
+                // paper body
+                vx.fillStyle = '#f2efe4';
+                vx.fillRect(-7, -1, 10, 2);
+                // brown filter
+                vx.fillStyle = '#a07030';
+                vx.fillRect(3, -1, 4, 2);
+                // dark band on filter
+                vx.fillStyle = '#7a4e1c';
+                vx.fillRect(3, -1, 0.8, 2);
+                // burnt black tip
+                vx.fillStyle = '#1a1a1a';
+                vx.fillRect(-7.6, -1, 0.9, 2);
+                // grey ash
+                vx.fillStyle = '#9a9a9a';
+                vx.fillRect(-8.2, -0.6, 0.7, 1.2);
+                vx.strokeStyle = 'rgba(0,0,0,0.25)'; vx.lineWidth = 0.3;
+                vx.strokeRect(-7, -1, 14, 2);
+                vx.restore();
+            };
+            const drawFrog = (px, py, ang, sc) => {
+                vx.save(); vx.translate(px, py); vx.rotate(ang); vx.scale(sc, sc);
+                // back legs (splayed)
+                vx.fillStyle = '#3aaa30';
+                vx.beginPath(); vx.ellipse(-4, 3, 2.2, 1.2, 0.6, 0, Math.PI * 2); vx.fill();
+                vx.beginPath(); vx.ellipse(4, 3, 2.2, 1.2, -0.6, 0, Math.PI * 2); vx.fill();
+                // body
+                vx.beginPath(); vx.ellipse(0, 0, 5, 4, 0, 0, Math.PI * 2); vx.fill();
+                // back shading
+                vx.fillStyle = '#2a8a20';
+                vx.beginPath(); vx.ellipse(-2, 0.5, 1.2, 2.5, 0, 0, Math.PI * 2); vx.fill();
+                vx.beginPath(); vx.ellipse(2, 0.5, 1.2, 2.5, 0, 0, Math.PI * 2); vx.fill();
+                // front legs
+                vx.fillStyle = '#3aaa30';
+                vx.beginPath(); vx.ellipse(-3, -2.4, 1.4, 0.8, -0.4, 0, Math.PI * 2); vx.fill();
+                vx.beginPath(); vx.ellipse(3, -2.4, 1.4, 0.8, 0.4, 0, Math.PI * 2); vx.fill();
+                // bulging eyes
+                vx.fillStyle = '#ffffff';
+                vx.beginPath(); vx.arc(-1.7, -3, 1.1, 0, Math.PI * 2); vx.fill();
+                vx.beginPath(); vx.arc(1.7, -3, 1.1, 0, Math.PI * 2); vx.fill();
+                vx.fillStyle = '#000000';
+                vx.beginPath(); vx.arc(-1.7, -3, 0.5, 0, Math.PI * 2); vx.fill();
+                vx.beginPath(); vx.arc(1.7, -3, 0.5, 0, Math.PI * 2); vx.fill();
+                vx.restore();
+            };
+
             if (synth) {
                 // ── SYNTHWAVE: top-down neon grid world ──
                 // base: deep purple/black
@@ -1670,6 +1783,8 @@ class BootScene extends Phaser.Scene {
                 vx.fillText('ROW 12', 105, 38);
                 vx.fillText('SEAT 4', 105, 45);
                 vx.restore();
+                // frogs hopping around the pitch
+                for (let i = 0; i < 18; i++) drawFrog(srand() * GW, srand() * GH, srand() * Math.PI * 2, 2.0 + srand() * 1.4);
                 // road shoulder — white line
                 vx.strokeStyle = '#bbb'; vx.lineWidth = t.rw + 10; vx.setLineDash([]);
                 vx.lineCap = 'round'; vx.lineJoin = 'round';
@@ -2264,6 +2379,8 @@ class BootScene extends Phaser.Scene {
                 vx.fillStyle='rgba(255,255,255,0.5)'; vx.font='bold 4px sans-serif'; vx.textAlign='center';
                 vx.fillText('CORONA',mxBx,mxBy-30);
                 vx.fillStyle='#ccc'; vx.beginPath(); vx.arc(mxBx,mxBy-75,5,0,Math.PI*2); vx.fill();
+                // ants marching around the dusty plaza
+                for (let i = 0; i < 26; i++) drawAnt(srand()*GW, srand()*GH, srand()*Math.PI*2, 2.2 + srand()*1.4);
                 vx.strokeStyle='#cc8830'; vx.lineWidth=t.rw+10; vx.lineCap='round'; vx.lineJoin='round'; vx.setLineDash([]);
                 drawPath(vx,wp); vx.stroke();
                 vx.strokeStyle='#aa6618'; vx.lineWidth=t.rw; drawPath(vx,wp); vx.stroke();
@@ -2410,6 +2527,23 @@ class BootScene extends Phaser.Scene {
                     const shade = 60 + (srand() * 30 | 0);
                     vx.fillStyle = `rgb(${shade},${shade + 50},${shade - 10})`;
                     vx.beginPath(); vx.arc(srand() * GW, srand() * GH, 20 + srand() * 60, 0, Math.PI * 2); vx.fill();
+                }
+                // per-track ground critters / props (drawn before road so the road covers them)
+                if (idx === 0) {
+                    // SIDEWINDER — ants crawling around
+                    for (let i = 0; i < 32; i++) drawAnt(srand() * GW, srand() * GH, srand() * Math.PI * 2, 2.4 + srand() * 1.6);
+                } else if (idx === 1) {
+                    // FANDANGO — spiders crawling around
+                    for (let i = 0; i < 18; i++) drawSpider(srand() * GW, srand() * GH, srand() * Math.PI * 2, 2.4 + srand() * 1.6);
+                } else if (idx === 3) {
+                    // BLASTER — daisies dotting the field
+                    for (let i = 0; i < 36; i++) drawDaisy(srand() * GW, srand() * GH, 2.2 + srand() * 1.6);
+                } else if (idx === 4) {
+                    // HUEVOS GRANDE — toadstools sprouting in the grass
+                    for (let i = 0; i < 24; i++) drawMushroom(srand() * GW, srand() * GH, 2.2 + srand() * 1.6);
+                } else if (idx === 6) {
+                    // BIG DUKES — used cigarettes left behind by the Duke boys
+                    for (let i = 0; i < 22; i++) drawCigarette(srand() * GW, srand() * GH, srand() * Math.PI * 2, 1.8 + srand() * 1.2);
                 }
                 // road shoulder
                 vx.strokeStyle = '#888'; vx.lineWidth = t.rw + 10;
@@ -2667,16 +2801,22 @@ class MainMenuScene extends Phaser.Scene {
         });
         this.input.keyboard.on('keydown-DOWN', () => {
             if (this.currentPanel === this.optionsPanel) {
-                this.optSel = Math.min(2, this.optSel + 1);
+                this.optSel = Math.min(this.optTexts.length - 1, this.optSel + 1);
                 this._updateOptCursor();
             } else { this._nav(1); }
         });
+        this.input.keyboard.on('keydown-LEFT', () => {
+            if (this.currentPanel === this.optionsPanel) this._adjustOpt(this.optSel, -1);
+        });
+        this.input.keyboard.on('keydown-RIGHT', () => {
+            if (this.currentPanel === this.optionsPanel) this._adjustOpt(this.optSel, 1);
+        });
         this.input.keyboard.on('keydown-ENTER', () => {
-            if (this.currentPanel === this.optionsPanel) this._toggleOpt(this.optSel);
+            if (this.currentPanel === this.optionsPanel) this._adjustOpt(this.optSel, 1);
             else this._select();
         });
         this.input.keyboard.on('keydown-SPACE', () => {
-            if (this.currentPanel === this.optionsPanel) this._toggleOpt(this.optSel);
+            if (this.currentPanel === this.optionsPanel) this._adjustOpt(this.optSel, 1);
             else if (!this.currentPanel) this._select();
         });
         this.input.keyboard.on('keydown-ESC',   () => this._showMain());
@@ -2718,17 +2858,32 @@ class MainMenuScene extends Phaser.Scene {
     }
 
     _toggleOpt(idx) {
-        const KEYS = ['drift', 'guardrails', 'gravity'];
-        const key = KEYS[idx];
-        opts[key] = !opts[key];
         const entry = this.optTexts[idx];
+        if (!entry || entry.type !== 'toggle') return;
+        const key = entry.key;
+        opts[key] = !opts[key];
         entry.check.setText(opts[key] ? '[✓]' : '[ ]').setColor(opts[key] ? '#00ff88' : '#444');
         entry.label.setColor(opts[key] ? '#FFD700' : '#888');
     }
 
+    _adjustOpt(idx, dir) {
+        const entry = this.optTexts[idx];
+        if (!entry) return;
+        if (entry.type === 'toggle') { this._toggleOpt(idx); return; }
+        if (entry.type === 'stepper') {
+            const min = entry.min, max = entry.max;
+            let v = opts[entry.key] + dir;
+            if (v < min) v = max;
+            if (v > max) v = min;
+            opts[entry.key] = v;
+            entry.check.setText('< ' + v + ' >').setColor('#00ff88');
+            entry.label.setColor('#FFD700');
+        }
+    }
+
     _updateOptCursor() {
         if (!this.optCursor || !this.optTexts) return;
-        this.optCursor.setY(330 + this.optSel * 90);
+        this.optCursor.setY(330 + this.optSel * 80);
     }
 
     _buildOptions() {
@@ -2746,32 +2901,42 @@ class MainMenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         const OPTIONS = [
-            { key: 'drift',      label: 'DRIFT MODE',  desc: 'Wild skid turns — hold your nerve!' },
-            { key: 'guardrails', label: 'GUARDRAILS',  desc: 'Bounce off road edges like bumper cars' },
-            { key: 'gravity',    label: 'GRAVITY',     desc: 'Fall off track, shrink, respawn with a bang' },
+            { key: 'drift',      label: 'DRIFT MODE',  desc: 'Wild skid turns — hold your nerve!', type: 'toggle' },
+            { key: 'guardrails', label: 'GUARDRAILS',  desc: 'Bounce off road edges like bumper cars', type: 'toggle' },
+            { key: 'gravity',    label: 'GRAVITY',     desc: 'Fall off track, shrink, respawn with a bang', type: 'toggle' },
+            { key: 'laps',       label: 'LAPS',        desc: 'Number of laps per race (1–5)', type: 'stepper', min: 1, max: 5 },
         ];
 
         this.optSel = 0;
         this.optTexts = [];
 
         OPTIONS.forEach((opt, i) => {
-            const oy = 330 + i * 90;
-            const checkTxt = addTxt(GW / 2 - 155, oy, opts[opt.key] ? '[✓]' : '[ ]', {
-                fontSize: '24px', color: opts[opt.key] ? '#00ff88' : '#444',
-            }).setOrigin(0.5);
+            const oy = 330 + i * 80;
+            let checkTxt, labelColor;
+            if (opt.type === 'stepper') {
+                checkTxt = addTxt(GW / 2 - 155, oy, '< ' + opts[opt.key] + ' >', {
+                    fontSize: '24px', color: '#00ff88',
+                }).setOrigin(0.5);
+                labelColor = '#FFD700';
+            } else {
+                checkTxt = addTxt(GW / 2 - 155, oy, opts[opt.key] ? '[✓]' : '[ ]', {
+                    fontSize: '24px', color: opts[opt.key] ? '#00ff88' : '#444',
+                }).setOrigin(0.5);
+                labelColor = opts[opt.key] ? '#FFD700' : '#888';
+            }
             const labelTxt = addTxt(GW / 2 - 105, oy, opt.label, {
-                fontSize: '24px', color: opts[opt.key] ? '#FFD700' : '#888', fontStyle: 'bold',
+                fontSize: '24px', color: labelColor, fontStyle: 'bold',
             }).setOrigin(0, 0.5);
-            addTxt(GW / 2 - 105, oy + 26, opt.desc, {
+            addTxt(GW / 2 - 105, oy + 24, opt.desc, {
                 fontSize: '13px', color: '#555',
             }).setOrigin(0, 0.5);
-            this.optTexts.push({ check: checkTxt, label: labelTxt, key: opt.key });
+            this.optTexts.push({ check: checkTxt, label: labelTxt, key: opt.key, type: opt.type, min: opt.min, max: opt.max });
 
             // Mouse click zone
-            const zone = this.add.zone(GW / 2, oy + 10, GW * 0.65, 60).setInteractive({ useHandCursor: true });
+            const zone = this.add.zone(GW / 2, oy + 10, GW * 0.65, 56).setInteractive({ useHandCursor: true });
             c.add(zone);
             zone.on('pointerover', () => { this.optSel = i; this._updateOptCursor(); });
-            zone.on('pointerdown', () => { this.optSel = i; this._toggleOpt(i); });
+            zone.on('pointerdown', () => { this.optSel = i; this._adjustOpt(i, 1); });
         });
 
         // Cursor arrow
@@ -2779,7 +2944,7 @@ class MainMenuScene extends Phaser.Scene {
             fontSize: '22px', color: '#FFD700',
         }).setOrigin(0.5);
 
-        addTxt(GW / 2, GH - 46, '↑ ↓  navigate   ENTER / SPACE  toggle   ESC  back', {
+        addTxt(GW / 2, GH - 46, '↑ ↓  navigate   ← →  adjust   ENTER  toggle/cycle   ESC  back', {
             fontSize: '14px', color: '#444',
         }).setOrigin(0.5);
 
@@ -3729,7 +3894,7 @@ class RaceScene extends Phaser.Scene {
             t.nxtCk++;
             if (t.nxtCk >= this.td.cks.length) {
                 t.nxtCk = 0; t.laps++;
-                const lapGoal = this.td.laps || TOTAL_LAPS;
+                const lapGoal = this.td.laps || opts.laps || TOTAL_LAPS;
                 if (t.laps >= lapGoal) {
                     t.fin = true; t.finPos = this.finOrder.length;
                     this.finOrder.push(t);
@@ -4302,7 +4467,8 @@ class RaceScene extends Phaser.Scene {
         const pl = ['1st', '2nd', '3rd', '4th'];
         const t0 = this.trucks[0];
         this.hPos.setText('POS: ' + pl[pi]);
-        this.hLap.setText('LAP: ' + Math.min(t0.laps + 1, (this.td.laps || TOTAL_LAPS)) + '/' + (this.td.laps || TOTAL_LAPS));
+        const lapGoal = this.td.laps || opts.laps || TOTAL_LAPS;
+        this.hLap.setText('LAP: ' + Math.min(t0.laps + 1, lapGoal) + '/' + lapGoal);
         this.hMon.setText('$' + gs.money.toLocaleString());
         this.hNit.setText('NITRO: ' + t0.nitros + (t0.nAct ? ' 🔥' : ''));
         // speed meter
