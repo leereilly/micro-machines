@@ -363,13 +363,22 @@ function resetGameState() {
         money: 200000, tires: 0, shocks: 0, acceleration: 0,
         topSpeed: 0, nitros: 3, raceNum: 0, playerIdx: 0,
         highestUnlocked: 0,
+        twoPlayer: false,
+        p2PlayerIdx: 1,
+        p2money: 200000, p2tires: 0, p2shocks: 0, p2acceleration: 0,
+        p2topSpeed: 0, p2nitros: 3,
     };
 }
 
-// Returns character indices reordered so gs.playerIdx is first
+// Returns character indices reordered so gs.playerIdx is first (and p2PlayerIdx second in 2P mode)
 function getCharOrder() {
     const order = [gs.playerIdx];
-    for (let i = 0; i < 4; i++) if (i !== gs.playerIdx) order.push(i);
+    if (gs.twoPlayer) {
+        order.push(gs.p2PlayerIdx);
+        for (let i = 0; i < 4; i++) if (i !== gs.playerIdx && i !== gs.p2PlayerIdx) order.push(i);
+    } else {
+        for (let i = 0; i < 4; i++) if (i !== gs.playerIdx) order.push(i);
+    }
     return order;
 }
 
@@ -2736,7 +2745,7 @@ class MainMenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Menu items
-        const ITEMS = ['PLAY', 'OPTIONS', 'ABOUT', 'CREDITS', 'CONTROLS'];
+        const ITEMS = ['1 PLAYER', '2 PLAYERS', 'OPTIONS', 'ABOUT', 'CREDITS', 'CONTROLS'];
         this.menuSel = 0;
         this.currentPanel = null;
 
@@ -2833,11 +2842,12 @@ class MainMenuScene extends Phaser.Scene {
     _select() {
         if (this.currentPanel) return;
         switch (this.menuSel) {
-            case 0: gs = resetGameState(); this.scene.start('PlayerSelectScene'); break;
-            case 1: this.optSel = 0; this._updateOptCursor(); this._showPanel(this.optionsPanel); break;
-            case 2: this._showPanel(this.aboutPanel);    break;
-            case 3: this._showPanel(this.creditsPanel);  break;
-            case 4: this._showPanel(this.controlsPanel); break;
+            case 0: gs = resetGameState(); gs.twoPlayer = false; this.scene.start('PlayerSelectScene'); break;
+            case 1: gs = resetGameState(); gs.twoPlayer = true;  this.scene.start('PlayerSelectScene'); break;
+            case 2: this.optSel = 0; this._updateOptCursor(); this._showPanel(this.optionsPanel); break;
+            case 3: this._showPanel(this.aboutPanel);    break;
+            case 4: this._showPanel(this.creditsPanel);  break;
+            case 5: this._showPanel(this.controlsPanel); break;
         }
     }
 
@@ -3045,20 +3055,37 @@ class MainMenuScene extends Phaser.Scene {
             return t;
         };
 
-        addTxt(GW / 2, 215, 'CONTROLS', {
+        addTxt(GW / 2, 155, 'CONTROLS', {
             fontSize: '36px', color: '#FFD700', fontStyle: 'bold',
         }).setOrigin(0.5);
 
-        const controls = [
+        // Player 1
+        addTxt(GW / 4, 220, 'PLAYER 1', { fontSize: '20px', color: '#FFD700', fontStyle: 'bold' }).setOrigin(0.5);
+        const p1controls = [
             ['↑',     'Accelerate'],
             ['↓',     'Brake / Reverse'],
-            ['←  →',  'Steer'],
+            ['← →',   'Steer'],
             ['SPACE', 'Nitro Boost'],
         ];
-        controls.forEach(([key, action], i) => {
-            const y = 310 + i * 64;
-            addTxt(GW / 2 - 20, y, key,    { fontSize: '26px', color: '#FFD700', fontStyle: 'bold' }).setOrigin(1, 0.5);
-            addTxt(GW / 2 + 10, y, action, { fontSize: '24px', color: '#ccc' }).setOrigin(0, 0.5);
+        p1controls.forEach(([key, action], i) => {
+            const y = 270 + i * 56;
+            addTxt(GW / 4 - 10, y, key,    { fontSize: '22px', color: '#FFD700', fontStyle: 'bold' }).setOrigin(1, 0.5);
+            addTxt(GW / 4 + 10, y, action, { fontSize: '20px', color: '#ccc' }).setOrigin(0, 0.5);
+        });
+
+        // Player 2
+        addTxt(GW * 3 / 4, 220, 'PLAYER 2', { fontSize: '20px', color: '#00eaff', fontStyle: 'bold' }).setOrigin(0.5);
+        const p2controls = [
+            ['W / Z',   'Accelerate'],
+            ['S',       'Brake / Reverse'],
+            ['A / Q',   'Steer Left'],
+            ['D',       'Steer Right'],
+            ['F',       'Nitro Boost'],
+        ];
+        p2controls.forEach(([key, action], i) => {
+            const y = 270 + i * 56;
+            addTxt(GW * 3 / 4 - 10, y, key,    { fontSize: '22px', color: '#00eaff', fontStyle: 'bold' }).setOrigin(1, 0.5);
+            addTxt(GW * 3 / 4 + 10, y, action, { fontSize: '20px', color: '#ccc' }).setOrigin(0, 0.5);
         });
 
         addTxt(GW / 2, GH - 46, 'ESC  ·  BACK', { fontSize: '16px', color: '#555' }).setOrigin(0.5);
@@ -3172,20 +3199,34 @@ class PlayerSelectScene extends Phaser.Scene {
     create() {
         this.cameras.main.setBackgroundColor('#0a0a1a');
         this.sel = gs.playerIdx || 0;
+        this.p2sel = gs.p2PlayerIdx !== undefined ? gs.p2PlayerIdx : 1;
+        this.p1confirmed = false;
+        this.p2confirmed = false;
 
-        this.add.text(GW / 2, 80, 'CHOOSE YOUR DRIVER', {
-            fontSize: '40px', fontFamily: 'monospace', color: '#FFD700',
+        const is2P = gs.twoPlayer;
+
+        this.add.text(GW / 2, 55, is2P ? 'CHOOSE YOUR DRIVERS' : 'CHOOSE YOUR DRIVER', {
+            fontSize: '38px', fontFamily: 'monospace', color: '#FFD700',
             fontStyle: 'bold', stroke: '#6B3410', strokeThickness: 6,
         }).setOrigin(0.5);
 
-        this.add.text(GW / 2, 135, '← →  to select  ·  ENTER to confirm', {
-            fontSize: '18px', fontFamily: 'monospace', color: '#888',
-        }).setOrigin(0.5);
+        if (is2P) {
+            this.add.text(GW / 4, 100, 'P1: ← →  ENTER', {
+                fontSize: '16px', fontFamily: 'monospace', color: '#FFD700',
+            }).setOrigin(0.5);
+            this.add.text(GW * 3 / 4, 100, 'P2: A/Q  D  F', {
+                fontSize: '16px', fontFamily: 'monospace', color: '#00eaff',
+            }).setOrigin(0.5);
+        } else {
+            this.add.text(GW / 2, 108, '← →  to select  ·  ENTER to confirm', {
+                fontSize: '18px', fontFamily: 'monospace', color: '#888',
+            }).setOrigin(0.5);
+        }
 
         // layout: 4 characters evenly spaced
         const startX = GW / 2 - 1.5 * 180;
-        const yAvatar = 350;
-        const yName = 500;
+        const yAvatar = 340;
+        const yName = 480;
         const spacing = 180;
         const avatarSize = 120;
 
@@ -3194,7 +3235,7 @@ class PlayerSelectScene extends Phaser.Scene {
             const cx = startX + i * spacing;
 
             // background card
-            const bg = this.add.rectangle(cx, 400, 150, 240, 0x222244, 0.6)
+            const bg = this.add.rectangle(cx, 385, 150, 230, 0x222244, 0.6)
                 .setStrokeStyle(3, 0x444466);
 
             // avatar
@@ -3210,52 +3251,126 @@ class PlayerSelectScene extends Phaser.Scene {
             this.cards.push({ bg, img, name, x: cx });
         }
 
-        // highlight indicator
-        this.highlight = this.add.rectangle(0, 400, 160, 250, 0x000000, 0)
+        // P1 highlight indicator (gold)
+        this.highlight = this.add.rectangle(0, 385, 160, 240, 0x000000, 0)
             .setStrokeStyle(4, 0xFFD700).setDepth(5);
 
+        // P2 highlight indicator (cyan) — only in 2P mode
+        this.highlight2 = this.add.rectangle(0, 385, 160, 240, 0x000000, 0)
+            .setStrokeStyle(4, 0x00eaff).setDepth(5);
+        this.highlight2.setVisible(is2P);
+
+        // P1 label
+        this.p1Label = this.add.text(0, 520, 'P1 ▲', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(6);
+
+        // P2 label (only in 2P mode)
+        this.p2Label = this.add.text(0, 540, 'P2 ▲', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#00eaff', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(6);
+        this.p2Label.setVisible(is2P);
+
         // arrow indicators
-        this.arrowL = this.add.text(startX - 100, 400, '◀', {
+        this.arrowL = this.add.text(startX - 100, 385, '◀', {
             fontSize: '48px', fontFamily: 'monospace', color: '#FFD700',
         }).setOrigin(0.5);
-        this.arrowR = this.add.text(startX + 3 * spacing + 100, 400, '▶', {
+        this.arrowR = this.add.text(startX + 3 * spacing + 100, 385, '▶', {
             fontSize: '48px', fontFamily: 'monospace', color: '#FFD700',
         }).setOrigin(0.5);
+
+        // Status text (shown in 2P to indicate readiness)
+        this.p1Status = this.add.text(GW / 4, 610, '', {
+            fontSize: '20px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
+        }).setOrigin(0.5).setVisible(is2P);
+        this.p2Status = this.add.text(GW * 3 / 4, 610, '', {
+            fontSize: '20px', fontFamily: 'monospace', color: '#00eaff', fontStyle: 'bold',
+        }).setOrigin(0.5).setVisible(is2P);
 
         this.updateSelection();
 
-        // controls
+        // P1 controls — arrow keys + ENTER/SPACE
         this.input.keyboard.on('keydown-LEFT', () => {
+            if (this.p1confirmed) return;
             this.sel = (this.sel - 1 + 4) % 4;
             this.updateSelection();
         });
         this.input.keyboard.on('keydown-RIGHT', () => {
+            if (this.p1confirmed) return;
             this.sel = (this.sel + 1) % 4;
             this.updateSelection();
         });
-        this.input.keyboard.on('keydown-ENTER', () => this.confirm());
-        this.input.keyboard.on('keydown-SPACE', () => this.confirm());
+        this.input.keyboard.on('keydown-ENTER', () => this.confirm(1));
+        this.input.keyboard.on('keydown-SPACE', () => { if (!is2P) this.confirm(1); });
+
+        if (is2P) {
+            // P2 controls — A/Q (left), D (right), F (confirm)
+            this.input.keyboard.on('keydown-A', () => {
+                if (this.p2confirmed) return;
+                this.p2sel = (this.p2sel - 1 + 4) % 4;
+                this.updateSelection();
+            });
+            this.input.keyboard.on('keydown-Q', () => {
+                if (this.p2confirmed) return;
+                this.p2sel = (this.p2sel - 1 + 4) % 4;
+                this.updateSelection();
+            });
+            this.input.keyboard.on('keydown-D', () => {
+                if (this.p2confirmed) return;
+                this.p2sel = (this.p2sel + 1) % 4;
+                this.updateSelection();
+            });
+            this.input.keyboard.on('keydown-F', () => this.confirm(2));
+        }
     }
 
     updateSelection() {
-        const card = this.cards[this.sel];
-        this.highlight.setPosition(card.x, 400);
+        const is2P = gs.twoPlayer;
+
+        this.highlight.setPosition(this.cards[this.sel].x, 385);
+        if (is2P) this.highlight2.setPosition(this.cards[this.p2sel].x, 385);
+        this.p1Label.setPosition(this.cards[this.sel].x, 525);
+        if (is2P) this.p2Label.setPosition(this.cards[this.p2sel].x, 543);
+
         this.cards.forEach((c, i) => {
-            const active = i === this.sel;
+            const isP1 = i === this.sel;
+            const isP2 = is2P && i === this.p2sel;
+            const active = isP1 || isP2;
             c.bg.setFillStyle(active ? 0x334488 : 0x222244, active ? 0.9 : 0.6);
-            c.bg.setStrokeStyle(3, active ? 0xFFD700 : 0x444466);
+            c.bg.setStrokeStyle(3, active ? (isP1 ? 0xFFD700 : 0x00eaff) : 0x444466);
             c.img.setAlpha(active ? 1.0 : 0.5);
             c.img.setDisplaySize(active ? 130 : 120, active ? 130 : 120);
-            c.name.setColor(active ? '#FFD700' : '#888');
+            c.name.setColor(active ? (isP1 ? '#FFD700' : '#00eaff') : '#888');
         });
-        // pulse arrows based on edges
         this.arrowL.setAlpha(1);
         this.arrowR.setAlpha(1);
     }
 
-    confirm() {
-        gs.playerIdx = this.sel;
-        // brief flash effect
+    confirm(player) {
+        const is2P = gs.twoPlayer;
+        if (player === 1) {
+            if (this.p1confirmed) return;
+            this.p1confirmed = true;
+            gs.playerIdx = this.sel;
+            if (is2P) {
+                this.p1Status.setText('P1 READY ✓');
+                this.highlight.setStrokeStyle(4, 0x888800);
+                if (this.p2confirmed) this._proceed();
+                return;
+            }
+        } else if (player === 2) {
+            if (this.p2confirmed) return;
+            this.p2confirmed = true;
+            gs.p2PlayerIdx = this.p2sel;
+            this.p2Status.setText('P2 READY ✓');
+            this.highlight2.setStrokeStyle(4, 0x008888);
+            if (this.p1confirmed) this._proceed();
+            return;
+        }
+        this._proceed();
+    }
+
+    _proceed() {
         this.cameras.main.flash(300, 255, 215, 0);
         this.time.delayedCall(300, () => this.scene.start('TrackSelectScene'));
     }
@@ -3301,8 +3416,10 @@ class RaceScene extends Phaser.Scene {
         const charOrder = getCharOrder();
         for (let i = 0; i < 4; i++) {
             const sp = this.td.starts[i];
-            const isP = i === 0;
             const ci = charOrder[i]; // character index
+            const isP = i === 0;
+            const isP2 = gs.twoPlayer && i === 1;
+            const isHuman = isP || isP2;
             const spriteKey = this.textures.exists(CAR_SPRITES[ci]) ? CAR_SPRITES[ci] : `truck_${TKEYS[i]}`;
             const t = {
                 spr: this.add.sprite(sp.x, sp.y, spriteKey)
@@ -3310,20 +3427,30 @@ class RaceScene extends Phaser.Scene {
                     .setDepth(10 + i)
                     .setDisplaySize(TRUCK_W, TRUCK_H),
                 x: sp.x, y: sp.y, a: sp.a, vx: 0, vy: 0,
-                isP, name: NAMES[ci], col: CHAR_COLORS[ci], imgKey: PLAYER_IMGS[ci], idx: i,
-                maxSpd: isP ? 3.0 + gs.topSpeed * 0.25 : 3.0 + Math.min(gs.raceNum * 0.06, 2.0),
-                acc:    isP ? 0.06 + gs.acceleration * 0.008 : 0.06 + Math.min(gs.raceNum * 0.003, 0.04),
-                hand:   isP ? 0.038 + gs.tires * 0.003 : 0.038 + Math.min(gs.raceNum * 0.001, 0.015),
-                stab:   isP ? 0.85 + gs.shocks * 0.012 : 0.85 + Math.min(gs.raceNum * 0.004, 0.1),
-                nitros: isP ? gs.nitros : 3 + Math.floor(gs.raceNum / 3),
+                isP, isP2, name: NAMES[ci], col: CHAR_COLORS[ci], imgKey: PLAYER_IMGS[ci], idx: i,
+                maxSpd: isP  ? 3.0 + gs.topSpeed * 0.25
+                      : isP2 ? 3.0 + gs.p2topSpeed * 0.25
+                             : 3.0 + Math.min(gs.raceNum * 0.06, 2.0),
+                acc:    isP  ? 0.06 + gs.acceleration * 0.008
+                      : isP2 ? 0.06 + gs.p2acceleration * 0.008
+                             : 0.06 + Math.min(gs.raceNum * 0.003, 0.04),
+                hand:   isP  ? 0.038 + gs.tires * 0.003
+                      : isP2 ? 0.038 + gs.p2tires * 0.003
+                             : 0.038 + Math.min(gs.raceNum * 0.001, 0.015),
+                stab:   isP  ? 0.85 + gs.shocks * 0.012
+                      : isP2 ? 0.85 + gs.p2shocks * 0.012
+                             : 0.85 + Math.min(gs.raceNum * 0.004, 0.1),
+                nitros: isP  ? gs.nitros
+                      : isP2 ? gs.p2nitros
+                             : 3 + Math.floor(gs.raceNum / 3),
                 nAct: false, nTmr: 0,
                 laps: 0, nxtCk: 0, fin: false, finPos: -1,
                 tMult: 1.0,
                 aiWp: Math.floor(this.td.wp.length * 0.96),
-                aiDiff: isP ? 0 : 0.8 + i * 0.08 + Math.min(gs.raceNum * 0.025, 0.6),
+                aiDiff: isHuman ? 0 : 0.8 + i * 0.08 + Math.min(gs.raceNum * 0.025, 0.6),
                 // Driving skill tier per AI slot: very good / ok / bad.
                 // Higher = cleaner line, better braking, less steering noise.
-                aiSkill:  isP ? 1 : [0, 0.95, 0.72, 0.48][i],
+                aiSkill:  isHuman ? 1 : [0, 0.95, 0.72, 0.48][i],
                 aiPhase:  Math.random() * Math.PI * 2,
                 frozenTimer: 0,
                 // Options state
@@ -3391,6 +3518,20 @@ class RaceScene extends Phaser.Scene {
         this.cur = this.input.keyboard.createCursorKeys();
         this.spc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
+        // Player 2 controls (WASD / ZQSD + F for nitro)
+        if (gs.twoPlayer) {
+            const KC = Phaser.Input.Keyboard.KeyCodes;
+            this.p2keys = {
+                up:    this.input.keyboard.addKey(KC.W),
+                upZ:   this.input.keyboard.addKey(KC.Z),
+                down:  this.input.keyboard.addKey(KC.S),
+                left:  this.input.keyboard.addKey(KC.A),
+                leftQ: this.input.keyboard.addKey(KC.Q),
+                right: this.input.keyboard.addKey(KC.D),
+                nitro: this.input.keyboard.addKey(KC.F),
+            };
+        }
+
         // race state
         this.started = false; this.over = false;
         this.finOrder = []; this.raceTime = 0; this.endScheduled = false;
@@ -3436,7 +3577,13 @@ class RaceScene extends Phaser.Scene {
 
         // camera follow for multi-screen tracks
         if (this.isBig) {
-            this.cameras.main.startFollow(this.trucks[0].spr, true, 0.12, 0.12);
+            if (gs.twoPlayer) {
+                // In 2P mode, follow midpoint of both players (manual update in update())
+                this._cameraFollowP1 = this.trucks[0];
+                this._cameraFollowP2 = this.trucks[1];
+            } else {
+                this.cameras.main.startFollow(this.trucks[0].spr, true, 0.12, 0.12);
+            }
         }
 
         // countdown — pinned to viewport
@@ -3474,6 +3621,17 @@ class RaceScene extends Phaser.Scene {
         this.hSpdLbl = this.add.text(780, 8, 'SPD', s).setDepth(51).setScrollFactor(0);
         this.hSpdBg = this.add.rectangle(820, 18, 90, 10, 0x222222, 0.8).setOrigin(0, 0.5).setDepth(50).setScrollFactor(0);
         this.hSpdFill = this.add.rectangle(820, 18, 0, 8, 0x00ff88, 1).setOrigin(0, 0.5).setDepth(51).setScrollFactor(0);
+
+        // P2 HUD bar (shown only in 2P mode)
+        if (gs.twoPlayer) {
+            const s2 = { fontSize: '15px', fontFamily: 'monospace', color: '#00eaff' };
+            this.add.rectangle(GW / 2, GH - 22, GW, 44, 0x111111, 0.88).setDepth(50).setScrollFactor(0);
+            this.hP2Label = this.add.text(16, GH - 32, 'P2', { ...s2, color: '#00eaff', fontStyle: 'bold' }).setDepth(51).setScrollFactor(0);
+            this.hP2Pos = this.add.text(55, GH - 32, 'POS: -', s2).setDepth(51).setScrollFactor(0);
+            this.hP2Nit = this.add.text(200, GH - 32, 'NITRO: 3', { ...s2, color: '#ff9900' }).setDepth(51).setScrollFactor(0);
+            this.hP2Mon = this.add.text(380, GH - 32, '$200,000', { ...s2, color: '#FFD700' }).setDepth(51).setScrollFactor(0);
+        }
+
         this.hBoard = [];
         const pad = 10, imgSz = 30, rowH = 42, fontSize = '28px';
         const bw = 300, bh = pad + 4 * rowH + pad, bx = GW - bw - pad, by = 46;
@@ -3550,12 +3708,26 @@ class RaceScene extends Phaser.Scene {
             if (t._fallGrace > 0) t._fallGrace -= dt;
 
             if (t.isP) this.drivePlayer(t, dt);
+            else if (t.isP2) this.drivePlayer2(t, dt);
             else this.driveAI(t, dt);
             this.physics(t, dt);
             this.checkCks(t);
-            if (t.isP) this.checkPks(t);
+            if (t.isP || t.isP2) this.checkPks(t);
             this.syncSprite(t);
         });
+
+        // 2P camera: follow midpoint of both players on big tracks
+        if (this.isBig && gs.twoPlayer && this._cameraFollowP1 && this._cameraFollowP2) {
+            const p1 = this._cameraFollowP1, p2 = this._cameraFollowP2;
+            const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+            const TW = this.td.W, TH = this.td.H;
+            const cx = Phaser.Math.Clamp(mx - GW / 2, 0, TW - GW);
+            const cy = Phaser.Math.Clamp(my - GH / 2, 0, TH - GH);
+            this.cameras.main.setScroll(
+                this.cameras.main.scrollX + (cx - this.cameras.main.scrollX) * 0.12,
+                this.cameras.main.scrollY + (cy - this.cameras.main.scrollY) * 0.12
+            );
+        }
 
         this.updateDust(dt);
         if (this.soccerBalls.length > 0 || this.subbuteo) this.updateSoccerProps(dt);
@@ -3565,8 +3737,11 @@ class RaceScene extends Phaser.Scene {
         this.calcPositions();
         this.drawHUD();
 
-        // end race check
-        if (!this.endScheduled && (this.finOrder.length >= 4 || this.finOrder.some(t => t.isP))) {
+        // end race check — in 2P mode wait until both human players have finished
+        const humansDone = gs.twoPlayer
+            ? this.finOrder.some(t => t.isP) && this.finOrder.some(t => t.isP2)
+            : this.finOrder.some(t => t.isP);
+        if (!this.endScheduled && (this.finOrder.length >= 4 || humansDone)) {
             this.endScheduled = true;
             this.time.delayedCall(2000, () => this.endRace());
         }
@@ -3613,6 +3788,45 @@ class RaceScene extends Phaser.Scene {
         }
 
         // speed lines at high velocity (only player, on-screen effect)
+        if (spd > t.maxSpd * 0.85 && Math.random() < 0.5) this.spawnSpeedLine(t);
+    }
+
+    drivePlayer2(t, dt) {
+        const k = this.p2keys;
+        const spd = Math.hypot(t.vx, t.vy);
+        const sf = Math.min(1, spd / (t.maxSpd * 0.6 + 0.01));
+        const steer = t.hand * dt * (opts.drift ? (0.75 + 0.75 * sf) : (0.55 + 0.55 * sf));
+        // A or Q = steer left; D = steer right
+        if (k.left.isDown || k.leftQ.isDown) t.a -= steer;
+        if (k.right.isDown) t.a += steer;
+
+        // W or Z = accelerate
+        if (k.up.isDown || k.upZ.isDown) {
+            const am = t.nAct ? 1.8 : 1.0;
+            t.vx += Math.cos(t.a) * t.acc * am * t.tMult * dt;
+            t.vy += Math.sin(t.a) * t.acc * am * t.tMult * dt;
+        }
+        // S = brake / reverse
+        if (k.down.isDown) {
+            const dx = Math.cos(t.a), dy = Math.sin(t.a);
+            const fwd = t.vx * dx + t.vy * dy;
+            if (fwd > 0) {
+                t.vx *= Math.pow(0.88, dt);
+                t.vy *= Math.pow(0.88, dt);
+            } else {
+                t.vx -= dx * t.acc * 0.5 * dt;
+                t.vy -= dy * t.acc * 0.5 * dt;
+            }
+        }
+
+        // F = nitro boost
+        if (Phaser.Input.Keyboard.JustDown(k.nitro) && t.nitros > 0 && !t.nAct) {
+            t.nAct = true; t.nitros--; gs.p2nitros = t.nitros; t.nTmr = 90;
+            this.nitroFX(t);
+            SFX.nitro();
+            this.cameras.main.flash(120, 120, 255, 40, true);
+        }
+
         if (spd > t.maxSpd * 0.85 && Math.random() < 0.5) this.spawnSpeedLine(t);
     }
 
@@ -3898,11 +4112,13 @@ class RaceScene extends Phaser.Scene {
                 if (t.laps >= lapGoal) {
                     t.fin = true; t.finPos = this.finOrder.length;
                     this.finOrder.push(t);
-                    if (t.isP) {
+                    if (t.isP || t.isP2) {
                         const lbl = ['1st', '2nd', '3rd', '4th'][t.finPos];
-                        this.add.text(GW / 2, GH / 2, lbl + ' PLACE!', {
+                        const tag = gs.twoPlayer ? (t.isP ? ' P1' : ' P2') : '';
+                        const yOff = gs.twoPlayer && t.isP2 ? GH / 2 + 60 : GH / 2;
+                        this.add.text(GW / 2, yOff, lbl + ' PLACE!' + tag, {
                             fontSize: '48px', fontFamily: 'monospace',
-                            color: t.finPos === 0 ? '#FFD700' : '#fff',
+                            color: t.finPos === 0 ? '#FFD700' : (t.isP2 ? '#00eaff' : '#fff'),
                             fontStyle: 'bold', stroke: '#000', strokeThickness: 5,
                         }).setOrigin(0.5).setDepth(100).setScrollFactor(0);
                         this.cameras.main.flash(400, 255, 215, 0);
@@ -3918,11 +4134,12 @@ class RaceScene extends Phaser.Scene {
             if (dist(t, p) < PICKUP_R + TS) {
                 p.on = false; this.pkSprites[i].setVisible(false);
                 if (p.type === 'money') {
-                    gs.money += p.val;
+                    if (t.isP2) { gs.p2money += p.val; } else { gs.money += p.val; }
                     this.floatTxt(p.x, p.y, '+$' + p.val.toLocaleString(), '#FFD700');
                     SFX.pickupMoney();
                 } else {
-                    t.nitros++; gs.nitros = t.nitros;
+                    t.nitros++;
+                    if (t.isP2) { gs.p2nitros = t.nitros; } else { gs.nitros = t.nitros; }
                     this.floatTxt(p.x, p.y, '+1 NITRO', '#ff6600');
                     SFX.pickupNitro();
                 }
@@ -4470,13 +4687,23 @@ class RaceScene extends Phaser.Scene {
         const lapGoal = this.td.laps || opts.laps || TOTAL_LAPS;
         this.hLap.setText('LAP: ' + Math.min(t0.laps + 1, lapGoal) + '/' + lapGoal);
         this.hMon.setText('$' + gs.money.toLocaleString());
-        this.hNit.setText('NITRO: ' + t0.nitros + (t0.nAct ? ' 🔥' : ''));
+        this.hNit.setText('NITRO: ' + t0.nitros + (t0.nAct ? ' \uD83D\uDD25' : ''));
         // speed meter
         const spd = Math.hypot(t0.vx, t0.vy);
         const ratio = Math.min(1, spd / ((t0.nAct ? t0.maxSpd * 1.5 : t0.maxSpd) + 0.001));
         this.hSpdFill.width = 90 * ratio;
         const col = ratio > 0.9 ? 0xff2a6d : ratio > 0.6 ? 0xffcc00 : 0x00ff88;
         this.hSpdFill.fillColor = col;
+
+        // P2 HUD
+        if (gs.twoPlayer && this.hP2Pos) {
+            const t1 = this.trucks[1];
+            const p2i = this.posOrder ? this.posOrder.indexOf(1) : 1;
+            this.hP2Pos.setText('POS: ' + pl[p2i]);
+            this.hP2Nit.setText('NITRO: ' + t1.nitros + (t1.nAct ? ' \uD83D\uDD25' : ''));
+            this.hP2Mon.setText('$' + gs.p2money.toLocaleString());
+        }
+
         if (this.posOrder) {
             this.hBoard.forEach((entry, i) => {
                 const ti = this.posOrder[i];
@@ -4504,7 +4731,7 @@ class RaceScene extends Phaser.Scene {
                 const mx = this.miniX + tk.x / this.td.W * this.miniW;
                 const my = this.miniY + tk.y / this.td.H * this.miniH;
                 this.miniG.fillStyle(tk.col, 1);
-                this.miniG.fillCircle(mx, my, tk.isP ? 3.5 : 2.5);
+                this.miniG.fillCircle(mx, my, (tk.isP || tk.isP2) ? 3.5 : 2.5);
             });
         }
     }
@@ -4527,13 +4754,29 @@ class RaceScene extends Phaser.Scene {
         const pp = this.trucks[0].finPos;
         const prize = PRIZES[Math.min(pp, 3)];
         gs.money += prize;
+        gs.nitros = this.trucks[0].nitros;
+
+        if (gs.twoPlayer) {
+            const p2 = this.trucks[1];
+            const pp2 = p2.finPos;
+            const prize2 = PRIZES[Math.min(pp2, 3)];
+            gs.p2money += prize2;
+            gs.p2nitros = p2.nitros;
+            gs.lastRes = {
+                track: this.td.name, race: gs.raceNum + 1,
+                order: this.finOrder.map(t => ({ name: t.name, imgKey: t.imgKey, isP: t.isP, isP2: t.isP2, pos: t.finPos })),
+                pp, prize, pp2, prize2,
+            };
+        } else {
+            gs.lastRes = {
+                track: this.td.name, race: gs.raceNum + 1,
+                order: this.finOrder.map(t => ({ name: t.name, imgKey: t.imgKey, isP: t.isP, isP2: false, pos: t.finPos })),
+                pp, prize,
+            };
+        }
+
         gs.raceNum++;
         gs.highestUnlocked = Math.min(Math.max(gs.highestUnlocked || 0, gs.raceNum), TRACKS.length - 1);
-        gs.lastRes = {
-            track: this.td.name, race: gs.raceNum,
-            order: this.finOrder.map(t => ({ name: t.name, imgKey: t.imgKey, isP: t.isP, pos: t.finPos })),
-            pp, prize,
-        };
         this.sound.stopAll();
         SFX.engineStop();
         this.time.delayedCall(1000, () => this.scene.start('ResultsScene'));
@@ -4561,19 +4804,37 @@ class ResultsScene extends Phaser.Scene {
             const y = 200 + i * 65;
             const imgX = GW / 2 - 120;
             this.add.image(imgX, y, e.imgKey).setOrigin(0.5).setDisplaySize(40, 40).setDepth(1);
-            this.add.text(GW / 2 - 80, y, `${pl[i]}  ${e.name}${e.isP ? '  ◄ YOU' : ''}`, {
-                fontSize: '26px', fontFamily: 'monospace',
-                color: e.isP ? hexCSS(CHAR_COLORS[gs.playerIdx]) : '#ccc', fontStyle: 'bold',
+            let tag = '';
+            if (e.isP)  tag = gs.twoPlayer ? '  \u25C4 P1' : '  \u25C4 YOU';
+            if (e.isP2) tag = '  \u25C4 P2';
+            const color = e.isP ? hexCSS(CHAR_COLORS[gs.playerIdx]) : (e.isP2 ? '#00eaff' : '#ccc');
+            this.add.text(GW / 2 - 80, y, `${pl[i]}  ${e.name}${tag}`, {
+                fontSize: '26px', fontFamily: 'monospace', color, fontStyle: 'bold',
             }).setOrigin(0, 0.5);
         });
 
-        this.add.text(GW / 2, 490, `PRIZE:  $${r.prize.toLocaleString()}`, {
-            fontSize: '28px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        this.add.text(GW / 2, 540, `TOTAL:  $${gs.money.toLocaleString()}`, {
-            fontSize: '22px', fontFamily: 'monospace', color: '#fff',
-        }).setOrigin(0.5);
+        const prizeY = 490;
+        if (gs.twoPlayer) {
+            this.add.text(GW / 4, prizeY, `P1 PRIZE: $${r.prize.toLocaleString()}`, {
+                fontSize: '22px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
+            }).setOrigin(0.5);
+            this.add.text(GW * 3 / 4, prizeY, `P2 PRIZE: $${(r.prize2 || 0).toLocaleString()}`, {
+                fontSize: '22px', fontFamily: 'monospace', color: '#00eaff', fontStyle: 'bold',
+            }).setOrigin(0.5);
+            this.add.text(GW / 4, prizeY + 44, `P1 TOTAL: $${gs.money.toLocaleString()}`, {
+                fontSize: '18px', fontFamily: 'monospace', color: '#FFD700',
+            }).setOrigin(0.5);
+            this.add.text(GW * 3 / 4, prizeY + 44, `P2 TOTAL: $${gs.p2money.toLocaleString()}`, {
+                fontSize: '18px', fontFamily: 'monospace', color: '#00eaff',
+            }).setOrigin(0.5);
+        } else {
+            this.add.text(GW / 2, prizeY, `PRIZE:  $${r.prize.toLocaleString()}`, {
+                fontSize: '28px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
+            }).setOrigin(0.5);
+            this.add.text(GW / 2, prizeY + 50, `TOTAL:  $${gs.money.toLocaleString()}`, {
+                fontSize: '22px', fontFamily: 'monospace', color: '#fff',
+            }).setOrigin(0.5);
+        }
 
         const ct = this.add.text(GW / 2, 660, 'PRESS ENTER TO CONTINUE', {
             fontSize: '22px', fontFamily: 'monospace', color: '#fff',
@@ -4592,12 +4853,21 @@ class ShopScene extends Phaser.Scene {
 
     create() {
         this.cameras.main.setBackgroundColor('#0d0d1a');
+        const is2P = gs.twoPlayer;
 
-        this.add.text(GW / 2, 45, "SPEED SHOP", {
+        this.add.text(GW / 2, 32, 'SPEED SHOP', {
             fontSize: '34px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
         }).setOrigin(0.5);
 
-        this.monTxt = this.add.text(GW / 2, 95, 'CASH: $' + gs.money.toLocaleString(), {
+        if (is2P) {
+            this._buildShop2P();
+        } else {
+            this._buildShop1P();
+        }
+    }
+
+    _buildShop1P() {
+        this.monTxt = this.add.text(GW / 2, 90, 'CASH: $' + gs.money.toLocaleString(), {
             fontSize: '24px', fontFamily: 'monospace', color: '#00ff00',
         }).setOrigin(0.5);
 
@@ -4605,46 +4875,39 @@ class ShopScene extends Phaser.Scene {
         this.bars = [];
 
         UPGRADES.forEach((u, i) => {
-            const y = 160 + i * 85;
+            const y = 150 + i * 85;
             this.add.text(180, y, u.name, {
                 fontSize: '22px', fontFamily: 'monospace', color: '#fff', fontStyle: 'bold',
             });
             this.add.text(180, y + 28, '$' + u.cost.toLocaleString(), {
                 fontSize: '14px', fontFamily: 'monospace', color: '#888',
             });
-
             const cur = gs[u.key];
-            const lt = this.add.text(480, y, `${cur}/${u.max}`, {
+            const lt = this.add.text(480, y, cur + '/' + u.max, {
                 fontSize: '18px', fontFamily: 'monospace', color: '#0af',
             });
             this.lvlTxts.push(lt);
-
-            // bar segments
             const barGroup = [];
             for (let b = 0; b < u.max && b < 12; b++) {
-                const filled = b < cur;
                 const seg = this.add.rectangle(480 + b * 20, y + 30, 16, 10,
-                    filled ? 0x00aaff : 0x222244).setOrigin(0, 0);
+                    b < cur ? 0x00aaff : 0x222244).setOrigin(0, 0);
                 barGroup.push(seg);
             }
             this.bars.push(barGroup);
-
-            // buy button
             const btn = this.add.text(780, y + 4, '[ BUY ]', {
                 fontSize: '20px', fontFamily: 'monospace', color: '#0f0',
                 backgroundColor: '#002200', padding: { x: 10, y: 4 },
             }).setInteractive({ useHandCursor: true });
-            btn.on('pointerdown', () => this.buy(u, i));
+            btn.on('pointerdown', () => this.buy1P(u, i));
             btn.on('pointerover', () => btn.setColor('#6f6'));
             btn.on('pointerout', () => btn.setColor('#0f0'));
         });
 
-        // keyboard shortcuts
-        this.add.text(GW / 2, 610, 'Keys 1-5 to buy  ·  ENTER to race', {
+        this.add.text(GW / 2, 610, 'Keys 1-5 to buy  \u00B7  ENTER to race', {
             fontSize: '14px', fontFamily: 'monospace', color: '#666',
         }).setOrigin(0.5);
 
-        const go = this.add.text(GW / 2, 680, '▶  START RACE  ◀', {
+        const go = this.add.text(GW / 2, 680, '\u25B6  START RACE  \u25C4', {
             fontSize: '28px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
             backgroundColor: '#332200', padding: { x: 20, y: 10 },
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -4652,32 +4915,152 @@ class ShopScene extends Phaser.Scene {
         go.on('pointerover', () => go.setColor('#ffe080'));
         go.on('pointerout', () => go.setColor('#FFD700'));
 
-        this.input.keyboard.on('keydown-ONE',   () => this.buy(UPGRADES[0], 0));
-        this.input.keyboard.on('keydown-TWO',   () => this.buy(UPGRADES[1], 1));
-        this.input.keyboard.on('keydown-THREE', () => this.buy(UPGRADES[2], 2));
-        this.input.keyboard.on('keydown-FOUR',  () => this.buy(UPGRADES[3], 3));
-        this.input.keyboard.on('keydown-FIVE',  () => this.buy(UPGRADES[4], 4));
+        this.input.keyboard.on('keydown-ONE',   () => this.buy1P(UPGRADES[0], 0));
+        this.input.keyboard.on('keydown-TWO',   () => this.buy1P(UPGRADES[1], 1));
+        this.input.keyboard.on('keydown-THREE', () => this.buy1P(UPGRADES[2], 2));
+        this.input.keyboard.on('keydown-FOUR',  () => this.buy1P(UPGRADES[3], 3));
+        this.input.keyboard.on('keydown-FIVE',  () => this.buy1P(UPGRADES[4], 4));
         this.input.keyboard.on('keydown-ENTER', () => this.race());
         this.input.keyboard.on('keydown-SPACE', () => this.race());
     }
 
-    buy(u, i) {
+    _buildShop2P() {
+        // Divider line
+        this.add.rectangle(GW / 2, GH / 2, 2, GH - 80, 0x334466).setOrigin(0.5);
+
+        // P1 panel (left)
+        this.add.text(GW / 4, 80, 'P1 GARAGE', {
+            fontSize: '22px', fontFamily: 'monospace', color: '#FFD700', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        this.monTxt = this.add.text(GW / 4, 112, '$' + gs.money.toLocaleString(), {
+            fontSize: '18px', fontFamily: 'monospace', color: '#00ff00',
+        }).setOrigin(0.5);
+        this.add.text(GW / 4, 135, 'Keys 1-5 to buy  ENTER=ready', {
+            fontSize: '12px', fontFamily: 'monospace', color: '#555',
+        }).setOrigin(0.5);
+
+        // P2 panel (right)
+        this.add.text(GW * 3 / 4, 80, 'P2 GARAGE', {
+            fontSize: '22px', fontFamily: 'monospace', color: '#00eaff', fontStyle: 'bold',
+        }).setOrigin(0.5);
+        this.monTxt2 = this.add.text(GW * 3 / 4, 112, '$' + gs.p2money.toLocaleString(), {
+            fontSize: '18px', fontFamily: 'monospace', color: '#00ff00',
+        }).setOrigin(0.5);
+        this.add.text(GW * 3 / 4, 135, 'Keys 6-0 to buy  F=ready', {
+            fontSize: '12px', fontFamily: 'monospace', color: '#555',
+        }).setOrigin(0.5);
+
+        this.lvlTxts = [];
+        this.bars = [];
+        this.lvlTxts2 = [];
+        this.bars2 = [];
+
+        const P2_KEYS = ['SIX', 'SEVEN', 'EIGHT', 'NINE', 'ZERO'];
+
+        UPGRADES.forEach((u, i) => {
+            const y = 175 + i * 100;
+            const p2key = 'p2' + u.key;
+
+            // P1 row
+            this.add.text(30, y, u.name, { fontSize: '16px', fontFamily: 'monospace', color: '#ccc', fontStyle: 'bold' });
+            this.add.text(30, y + 20, '$' + u.cost.toLocaleString(), { fontSize: '12px', fontFamily: 'monospace', color: '#666' });
+            const cur1 = gs[u.key];
+            const lt1 = this.add.text(340, y, cur1 + '/' + u.max, { fontSize: '15px', fontFamily: 'monospace', color: '#0af' });
+            this.lvlTxts.push(lt1);
+            const bg1 = [];
+            for (let b = 0; b < u.max && b < 10; b++) {
+                bg1.push(this.add.rectangle(200 + b * 14, y + 22, 12, 8, b < cur1 ? 0x00aaff : 0x222244).setOrigin(0, 0));
+            }
+            this.bars.push(bg1);
+            const btn1 = this.add.text(380, y + 2, '[BUY]', {
+                fontSize: '16px', fontFamily: 'monospace', color: '#0f0',
+                backgroundColor: '#002200', padding: { x: 6, y: 3 },
+            }).setInteractive({ useHandCursor: true });
+            btn1.on('pointerdown', () => this.buy1P(u, i));
+            btn1.on('pointerover', () => btn1.setColor('#6f6'));
+            btn1.on('pointerout', () => btn1.setColor('#0f0'));
+
+            // P2 row
+            const cur2 = gs[p2key] || 0;
+            const lt2 = this.add.text(GW / 2 + 340, y, cur2 + '/' + u.max, { fontSize: '15px', fontFamily: 'monospace', color: '#0af' });
+            this.lvlTxts2.push(lt2);
+            this.add.text(GW / 2 + 30, y, u.name, { fontSize: '16px', fontFamily: 'monospace', color: '#ccc', fontStyle: 'bold' });
+            this.add.text(GW / 2 + 30, y + 20, '$' + u.cost.toLocaleString(), { fontSize: '12px', fontFamily: 'monospace', color: '#666' });
+            const bg2 = [];
+            for (let b = 0; b < u.max && b < 10; b++) {
+                bg2.push(this.add.rectangle(GW / 2 + 200 + b * 14, y + 22, 12, 8, b < cur2 ? 0x00aaff : 0x222244).setOrigin(0, 0));
+            }
+            this.bars2.push(bg2);
+            const btn2 = this.add.text(GW / 2 + 380, y + 2, '[BUY]', {
+                fontSize: '16px', fontFamily: 'monospace', color: '#0af',
+                backgroundColor: '#000e22', padding: { x: 6, y: 3 },
+            }).setInteractive({ useHandCursor: true });
+            btn2.on('pointerdown', () => this.buy2P(u, i));
+            btn2.on('pointerover', () => btn2.setColor('#6ff'));
+            btn2.on('pointerout', () => btn2.setColor('#0af'));
+
+            this.input.keyboard.on('keydown-' + P2_KEYS[i], () => this.buy2P(u, i));
+        });
+
+        // Ready status displays
+        this.p1ReadyTxt = this.add.text(GW / 4, 700, 'ENTER = READY', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#FFD700',
+        }).setOrigin(0.5);
+        this.p2ReadyTxt = this.add.text(GW * 3 / 4, 700, 'F = READY', {
+            fontSize: '18px', fontFamily: 'monospace', color: '#00eaff',
+        }).setOrigin(0.5);
+
+        this.p1Ready = false;
+        this.p2Ready = false;
+
+        this.input.keyboard.on('keydown-ONE',   () => this.buy1P(UPGRADES[0], 0));
+        this.input.keyboard.on('keydown-TWO',   () => this.buy1P(UPGRADES[1], 1));
+        this.input.keyboard.on('keydown-THREE', () => this.buy1P(UPGRADES[2], 2));
+        this.input.keyboard.on('keydown-FOUR',  () => this.buy1P(UPGRADES[3], 3));
+        this.input.keyboard.on('keydown-FIVE',  () => this.buy1P(UPGRADES[4], 4));
+        this.input.keyboard.on('keydown-ENTER', () => this.ready(1));
+        this.input.keyboard.on('keydown-F',     () => this.ready(2));
+    }
+
+    buy1P(u, i) {
         if (gs.money >= u.cost && gs[u.key] < u.max) {
             gs.money -= u.cost;
             gs[u.key]++;
-            this.monTxt.setText('CASH: $' + gs.money.toLocaleString());
+            if (this.monTxt) this.monTxt.setText((gs.twoPlayer ? '' : 'CASH: ') + '$' + gs.money.toLocaleString());
             this.lvlTxts[i].setText(gs[u.key] + '/' + u.max);
-            // update bar
             const cur = gs[u.key];
-            if (cur - 1 < this.bars[i].length) {
-                this.bars[i][cur - 1].setFillStyle(0x00aaff);
-            }
+            if (cur - 1 < this.bars[i].length) this.bars[i][cur - 1].setFillStyle(0x00aaff);
         }
+    }
+
+    buy2P(u, i) {
+        const p2key = 'p2' + u.key;
+        if (gs.p2money >= u.cost && gs[p2key] < u.max) {
+            gs.p2money -= u.cost;
+            gs[p2key]++;
+            if (this.monTxt2) this.monTxt2.setText('$' + gs.p2money.toLocaleString());
+            this.lvlTxts2[i].setText(gs[p2key] + '/' + u.max);
+            const cur2 = gs[p2key];
+            if (cur2 - 1 < this.bars2[i].length) this.bars2[i][cur2 - 1].setFillStyle(0x00aaff);
+        }
+    }
+
+    // Legacy single-buy for 1P mode
+    buy(u, i) { this.buy1P(u, i); }
+
+    ready(player) {
+        if (player === 1) {
+            this.p1Ready = true;
+            this.p1ReadyTxt.setText('P1 READY \u2713').setColor('#00ff88');
+        } else {
+            this.p2Ready = true;
+            this.p2ReadyTxt.setText('P2 READY \u2713').setColor('#00ff88');
+        }
+        if (this.p1Ready && this.p2Ready) this.race();
     }
 
     race() { this.scene.start('TrackSelectScene'); }
 }
-
 // ── TRACK SELECT SCENE ──────────────────────────────────────
 class TrackSelectScene extends Phaser.Scene {
     constructor() { super('TrackSelectScene'); }
